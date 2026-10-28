@@ -13,21 +13,21 @@ import net.minecraft.network.chat.Component;
 
 public class CoderEditScreen extends Screen {
 	private final BlockPos pos;
-	private final String initialScript;
+	private String script;
 	private final String status;
 	private MultiLineEditBox editor;
 
 	public CoderEditScreen(BlockPos pos, String initialScript, String status) {
 		super(Component.translatable("gui.codeworks.coder_editor"));
 		this.pos = pos;
-		this.initialScript = initialScript;
+		this.script = initialScript == null ? "" : initialScript;
 		this.status = status == null ? "" : status;
 	}
 
 	@Override
 	protected void init() {
 		int editorWidth = Math.min(360, this.width - 40);
-		int editorHeight = Math.min(140, this.height - 120);
+		int editorHeight = Math.min(140, this.height - 130);
 		int x = (this.width - editorWidth) / 2;
 		int y = 40;
 
@@ -37,24 +37,36 @@ public class CoderEditScreen extends Screen {
 			.setPlaceholder(Component.translatable("gui.codeworks.coder_placeholder"))
 			.build(this.font, editorWidth, editorHeight, Component.translatable("gui.codeworks.coder_editor"));
 		this.editor.setCharacterLimit(CoderBlockEntity.MAX_SCRIPT_LENGTH);
-		this.editor.setValue(this.initialScript);
+		this.editor.setValue(this.script);
 		this.addRenderableWidget(this.editor);
 
-		int buttonY = y + editorHeight + 28;
+		int buttonY = y + editorHeight + 24;
+		int left = this.width / 2 - 154;
 		this.addRenderableWidget(
 			Button.builder(Component.translatable("gui.codeworks.save"), button -> this.save())
-				.bounds(this.width / 2 - 154, buttonY, 150, 20)
+				.bounds(left, buttonY, 100, 20)
+				.build()
+		);
+		this.addRenderableWidget(
+			Button.builder(Component.translatable("gui.codeworks.help"), button -> this.openHelp())
+				.bounds(left + 104, buttonY, 100, 20)
 				.build()
 		);
 		this.addRenderableWidget(
 			Button.builder(CommonComponents.GUI_DONE, button -> this.onClose())
-				.bounds(this.width / 2 + 4, buttonY, 150, 20)
+				.bounds(left + 208, buttonY, 100, 20)
 				.build()
 		);
 	}
 
+	private void openHelp() {
+		this.script = this.editor.getValue();
+		this.minecraft.setScreenAndShow(new CoderHelpScreen(this));
+	}
+
 	private void save() {
-		ClientPlayNetworking.send(new SaveCoderScriptPayload(this.pos, this.editor.getValue()));
+		this.script = this.editor.getValue();
+		ClientPlayNetworking.send(new SaveCoderScriptPayload(this.pos, this.script));
 		this.onClose();
 	}
 
@@ -62,7 +74,7 @@ public class CoderEditScreen extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 		graphics.centeredText(this.font, this.title, this.width / 2, 15, 0xFFFFFF);
-		graphics.centeredText(this.font, Component.literal(this.status), this.width / 2, this.height - 30, 0xA0A0A0);
+		graphics.centeredText(this.font, Component.literal(this.status), this.width / 2, this.height - 28, 0xA0A0A0);
 	}
 
 	@Override
