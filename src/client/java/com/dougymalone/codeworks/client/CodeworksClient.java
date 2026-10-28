@@ -1,10 +1,11 @@
 package com.dougymalone.codeworks.client;
 
+import com.dougymalone.codeworks.client.network.ClientNetworking;
 import net.fabricmc.api.ClientModInitializer;
 
 public class CodeworksClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
-		// Client entrypoint — script editor GUI will register here later.
+		ClientNetworking.register();
 	}
 }

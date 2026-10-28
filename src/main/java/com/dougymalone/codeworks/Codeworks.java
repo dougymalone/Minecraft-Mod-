@@ -1,24 +1,26 @@
 package com.dougymalone.codeworks;
 
+import com.dougymalone.codeworks.network.ModNetworking;
+import com.dougymalone.codeworks.registry.ModBlockEntities;
+import com.dougymalone.codeworks.registry.ModBlocks;
+import com.dougymalone.codeworks.registry.ModItems;
 import net.fabricmc.api.ModInitializer;
-
 import net.minecraft.resources.Identifier;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Codeworks implements ModInitializer {
 	public static final String MOD_ID = "codeworks";
-
-	// This logger is used to write text to the console and the log file.
-	// It is considered best practice to use your mod id as the logger's name.
-	// That way, it's clear which mod wrote info, warnings, and errors.
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
 	@Override
 	public void onInitialize() {
-		// Scaffold only — machine block, interpreter, and GUI land in later milestones.
-		LOGGER.info("Codeworks initialized (scaffold)");
+		ModBlocks.register();
+		ModBlockEntities.register();
+		ModItems.register();
+		ModNetworking.registerCommon();
+		ModNetworking.registerServerReceivers();
+		LOGGER.info("Codeworks initialized");
 	}
 
 	public static Identifier id(String path) {
