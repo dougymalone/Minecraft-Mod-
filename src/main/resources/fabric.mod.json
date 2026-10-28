@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "codeworks",
+	"version": "${version}",
+	"name": "Codeworks",
+	"description": "Create-inspired programmable machines driven by C#-like scripts you edit in-game.",
+	"authors": [
+		"Dougy Malone"
+	],
+	"contact": {
+		"homepage": "https://github.com/dougymalone/Minecraft-Mod-",
+		"sources": "https://github.com/dougymalone/Minecraft-Mod-"
+	},
+	"license": "MIT",
+	"icon": "assets/codeworks/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.dougymalone.codeworks.Codeworks"
+		],
+		"client": [
+			"com.dougymalone.codeworks.client.CodeworksClient"
+		]
+	},
+	"mixins": [
+		"codeworks.mixins.json",
+		{
+			"config": "codeworks.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
