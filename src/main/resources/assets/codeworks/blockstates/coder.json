@@ -1,0 +1,26 @@
+{
+  "variants": {
+    "facing=down": {
+      "model": "codeworks:block/coder_vertical",
+      "x": 180
+    },
+    "facing=east": {
+      "model": "codeworks:block/coder",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "codeworks:block/coder"
+    },
+    "facing=south": {
+      "model": "codeworks:block/coder",
+      "y": 180
+    },
+    "facing=up": {
+      "model": "codeworks:block/coder_vertical"
+    },
+    "facing=west": {
+      "model": "codeworks:block/coder",
+      "y": 270
+    }
+  }
+}
