@@ -3,5 +3,10 @@
   "item.codeworks.coder": "Coder",
   "gui.codeworks.coder_editor": "Coder Script",
   "gui.codeworks.coder_placeholder": "Write a C#-like script…",
-  "gui.codeworks.save": "Save"
+  "gui.codeworks.save": "Save",
+  "gui.codeworks.help": "Help",
+  "gui.codeworks.help_title": "Coder Help — API & language",
+  "gui.codeworks.help_api_header": "Host API (only these calls are allowed)",
+  "gui.codeworks.help_lang_header": "Language notes (C#-like, not full C#)",
+  "gui.codeworks.help_truncated": "…(resize window if text is cut off)"
 }
