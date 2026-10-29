@@ -1,7 +1,0 @@
-{
-  "parent": "minecraft:block/orientable_vertical",
-  "textures": {
-    "front": "codeworks:block/breaker_front",
-    "side": "codeworks:block/breaker_side"
-  }
-}
