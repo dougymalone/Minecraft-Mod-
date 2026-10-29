@@ -1,12 +1,14 @@
 {
-  "block.codeworks.coder": "Coder",
-  "item.codeworks.coder": "Coder",
-  "gui.codeworks.coder_editor": "Coder Script",
-  "gui.codeworks.coder_placeholder": "Write a C#-like script…",
+  "block.codeworks.breaker": "Breaker",
+  "item.codeworks.breaker": "Breaker",
+  "gui.codeworks.breaker_editor": "Breaker Script",
+  "gui.codeworks.breaker_placeholder": "Write a C#-like script…",
   "gui.codeworks.save": "Save",
   "gui.codeworks.help": "Help",
-  "gui.codeworks.help_title": "Coder Help — API & language",
+  "gui.codeworks.help_title": "Breaker Help — API & language",
   "gui.codeworks.help_api_header": "Host API (only these calls are allowed)",
+  "gui.codeworks.help_settings_header": "Settings (assign like variables; saved on the machine)",
   "gui.codeworks.help_lang_header": "Language notes (C#-like, not full C#)",
-  "gui.codeworks.help_truncated": "…(resize window if text is cut off)"
+  "gui.codeworks.help_scroll_up": "Up",
+  "gui.codeworks.help_scroll_down": "Down"
 }

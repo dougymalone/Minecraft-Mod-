@@ -7,16 +7,16 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public record SaveCoderScriptPayload(BlockPos pos, String script) implements CustomPacketPayload {
-	public static final CustomPacketPayload.Type<SaveCoderScriptPayload> TYPE =
-		new CustomPacketPayload.Type<>(Codeworks.id("save_coder_script"));
+public record SaveBreakerScriptPayload(BlockPos pos, String script) implements CustomPacketPayload {
+	public static final CustomPacketPayload.Type<SaveBreakerScriptPayload> TYPE =
+		new CustomPacketPayload.Type<>(Codeworks.id("save_breaker_script"));
 
-	public static final StreamCodec<RegistryFriendlyByteBuf, SaveCoderScriptPayload> CODEC = StreamCodec.composite(
+	public static final StreamCodec<RegistryFriendlyByteBuf, SaveBreakerScriptPayload> CODEC = StreamCodec.composite(
 		BlockPos.STREAM_CODEC,
-		SaveCoderScriptPayload::pos,
+		SaveBreakerScriptPayload::pos,
 		ByteBufCodecs.STRING_UTF8,
-		SaveCoderScriptPayload::script,
-		SaveCoderScriptPayload::new
+		SaveBreakerScriptPayload::script,
+		SaveBreakerScriptPayload::new
 	);
 
 	@Override

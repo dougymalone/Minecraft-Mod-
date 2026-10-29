@@ -8,11 +8,11 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "codeworks:coder"
+          "name": "codeworks:breaker"
         }
       ],
       "rolls": 1
     }
   ],
-  "random_sequence": "codeworks:blocks/coder"
+  "random_sequence": "codeworks:blocks/breaker"
 }

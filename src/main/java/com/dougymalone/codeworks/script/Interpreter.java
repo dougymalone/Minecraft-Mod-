@@ -1,5 +1,8 @@
 package com.dougymalone.codeworks.script;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -7,16 +10,22 @@ import java.util.Map;
 import java.util.Set;
 
 public final class Interpreter {
-	public static final int DEFAULT_OPCODE_BUDGET = 256;
-	public static final int DEFAULT_API_BUDGET = 8;
+	public static final int DEFAULT_OPCODE_BUDGET = 512;
+	public static final int DEFAULT_API_BUDGET = 32;
+	public static final int MAX_LOOP_ITERATIONS = 128;
 
-	private static final Set<String> HOST_METHODS = Set.of("Harvest", "BreakFront", "Log");
+	private static final Set<String> HOST_METHODS = Set.of(
+		"Harvest", "BreakFront", "Log", "Sense", "HasBlock", "Move", "Wait"
+	);
+	private static final Set<String> SETTINGS = Set.of("speed", "range", "autoPickup");
 
 	private final Ast.Program program;
 	private final HostApi host;
 	private final Map<String, Object> locals = new HashMap<>();
+	private final Deque<Frame> stack = new ArrayDeque<>();
 	private int opcodesRemaining;
 	private int apiCallsRemaining;
+	private boolean finished = true;
 
 	public Interpreter(Ast.Program program, HostApi host) {
 		this.program = program;
@@ -28,47 +37,100 @@ public final class Interpreter {
 		return new Parser(tokens).parse();
 	}
 
-	public void run() throws ScriptException {
-		run(DEFAULT_OPCODE_BUDGET, DEFAULT_API_BUDGET);
+	public boolean isFinished() {
+		return finished;
 	}
 
-	public void run(int opcodeBudget, int apiBudget) throws ScriptException {
+	/** Start a fresh run from the top of the program. */
+	public void start() throws ScriptException, ScriptYield {
+		start(DEFAULT_OPCODE_BUDGET, DEFAULT_API_BUDGET);
+	}
+
+	public void start(int opcodeBudget, int apiBudget) throws ScriptException, ScriptYield {
 		opcodesRemaining = opcodeBudget;
 		apiCallsRemaining = apiBudget;
 		locals.clear();
-		for (Ast.Stmt stmt : program.statements()) {
-			execute(stmt);
+		stack.clear();
+		finished = false;
+		stack.push(Frame.seq(program.statements()));
+		resume();
+	}
+
+	/** Continue after Wait or mid-run; refills budgets for this tick slice. */
+	public void resume() throws ScriptException, ScriptYield {
+		resume(DEFAULT_OPCODE_BUDGET, DEFAULT_API_BUDGET);
+	}
+
+	public void resume(int opcodeBudget, int apiBudget) throws ScriptException, ScriptYield {
+		if (finished) {
+			return;
+		}
+		opcodesRemaining = opcodeBudget;
+		apiCallsRemaining = apiBudget;
+		try {
+			while (!stack.isEmpty()) {
+				step();
+			}
+			finished = true;
+		} catch (ScriptYield yield) {
+			// stack preserved for later resume
+			throw yield;
 		}
 	}
 
-	private void execute(Ast.Stmt stmt) throws ScriptException {
+	private void step() throws ScriptException, ScriptYield {
+		Frame frame = stack.peek();
+		if (frame == null) {
+			return;
+		}
+		switch (frame.kind) {
+			case SEQ -> stepSeq(frame);
+			case WHILE -> stepWhile(frame);
+			case FOR -> stepFor(frame);
+		}
+	}
+
+	private void stepSeq(Frame frame) throws ScriptException, ScriptYield {
+		if (frame.index >= frame.statements.size()) {
+			stack.pop();
+			return;
+		}
+		Ast.Stmt stmt = frame.statements.get(frame.index);
+		frame.index++;
+		enter(stmt);
+	}
+
+	private void enter(Ast.Stmt stmt) throws ScriptException, ScriptYield {
 		switch (stmt) {
-			case Ast.Stmt.Block block -> {
-				for (Ast.Stmt inner : block.statements()) {
-					execute(inner);
-				}
-			}
+			case Ast.Stmt.Block block -> stack.push(Frame.seq(block.statements()));
 			case Ast.Stmt.VarDecl decl -> {
 				bump();
-				Object value = evaluate(decl.initializer());
-				value = coerce(decl.typeName(), value, decl.line());
-				locals.put(decl.name(), value);
+				Object value = coerce(decl.typeName(), evaluate(decl.initializer()), decl.line());
+				writeVar(decl.name(), value, decl.line(), true);
 			}
 			case Ast.Stmt.Assign assign -> {
 				bump();
-				if (!locals.containsKey(assign.name())) {
-					throw new ScriptException("Undefined variable '" + assign.name() + "'", assign.line());
-				}
-				locals.put(assign.name(), evaluate(assign.value()));
+				Object value = evaluate(assign.value());
+				writeVar(assign.name(), value, assign.line(), false);
 			}
 			case Ast.Stmt.If ifStmt -> {
 				bump();
-				Object condition = evaluate(ifStmt.condition());
-				if (isTruthy(condition)) {
-					execute(ifStmt.thenBranch());
+				if (isTruthy(evaluate(ifStmt.condition()))) {
+					enter(ifStmt.thenBranch());
 				} else if (ifStmt.elseBranch() != null) {
-					execute(ifStmt.elseBranch());
+					enter(ifStmt.elseBranch());
 				}
+			}
+			case Ast.Stmt.While whileStmt -> {
+				bump();
+				stack.push(Frame.whileLoop(whileStmt));
+			}
+			case Ast.Stmt.For forStmt -> {
+				bump();
+				if (forStmt.init() != null) {
+					enter(forStmt.init());
+				}
+				stack.push(Frame.forLoop(forStmt));
 			}
 			case Ast.Stmt.Expression expression -> {
 				bump();
@@ -77,16 +139,44 @@ public final class Interpreter {
 		}
 	}
 
-	private Object evaluate(Ast.Expr expr) throws ScriptException {
+	private void stepWhile(Frame frame) throws ScriptException, ScriptYield {
+		Ast.Stmt.While whileStmt = frame.whileStmt;
+		bump();
+		if (frame.iterations >= MAX_LOOP_ITERATIONS) {
+			throw new ScriptException("while loop iteration limit (" + MAX_LOOP_ITERATIONS + ")", whileStmt.line());
+		}
+		if (!isTruthy(evaluate(whileStmt.condition()))) {
+			stack.pop();
+			return;
+		}
+		frame.iterations++;
+		enter(whileStmt.body());
+	}
+
+	private void stepFor(Frame frame) throws ScriptException, ScriptYield {
+		Ast.Stmt.For forStmt = frame.forStmt;
+		bump();
+		if (frame.iterations >= MAX_LOOP_ITERATIONS) {
+			throw new ScriptException("for loop iteration limit (" + MAX_LOOP_ITERATIONS + ")", forStmt.line());
+		}
+		boolean run = forStmt.condition() == null || isTruthy(evaluate(forStmt.condition()));
+		if (!run) {
+			stack.pop();
+			return;
+		}
+		frame.iterations++;
+		// Body then increment: push increment as a one-shot seq after body returns
+		if (forStmt.increment() != null) {
+			stack.push(Frame.seq(List.of(forStmt.increment())));
+		}
+		enter(forStmt.body());
+	}
+
+	private Object evaluate(Ast.Expr expr) throws ScriptException, ScriptYield {
 		bump();
 		return switch (expr) {
 			case Ast.Expr.Literal literal -> literal.value();
-			case Ast.Expr.Variable variable -> {
-				if (!locals.containsKey(variable.name())) {
-					throw new ScriptException("Undefined variable '" + variable.name() + "'", variable.line());
-				}
-				yield locals.get(variable.name());
-			}
+			case Ast.Expr.Variable variable -> readVar(variable.name(), variable.line());
 			case Ast.Expr.Unary unary -> {
 				Object right = evaluate(unary.right());
 				yield switch (unary.op()) {
@@ -135,7 +225,7 @@ public final class Interpreter {
 		};
 	}
 
-	private Object evaluateCall(Ast.Expr.Call call) throws ScriptException {
+	private Object evaluateCall(Ast.Expr.Call call) throws ScriptException, ScriptYield {
 		if (!(call.callee() instanceof Ast.Expr.Variable variable)) {
 			throw new ScriptException("Can only call host API methods", call.line());
 		}
@@ -147,7 +237,7 @@ public final class Interpreter {
 			throw new ScriptException("API call budget exceeded", call.line());
 		}
 
-		List<Object> args = new java.util.ArrayList<>(call.args().size());
+		List<Object> args = new ArrayList<>(call.args().size());
 		for (Ast.Expr arg : call.args()) {
 			args.add(evaluate(arg));
 		}
@@ -166,8 +256,65 @@ public final class Interpreter {
 				host.log(String.valueOf(args.getFirst()));
 				yield null;
 			}
+			case "Sense" -> {
+				if (!args.isEmpty()) {
+					throw new ScriptException("Sense() takes no arguments", call.line());
+				}
+				yield host.sense();
+			}
+			case "HasBlock" -> {
+				if (!args.isEmpty()) {
+					throw new ScriptException("HasBlock() takes no arguments", call.line());
+				}
+				yield host.hasBlock();
+			}
+			case "Move" -> {
+				if (args.size() != 1) {
+					throw new ScriptException("Move(string) expects one argument", call.line());
+				}
+				host.move(String.valueOf(args.getFirst()));
+				yield null;
+			}
+			case "Wait" -> {
+				if (args.size() != 1) {
+					throw new ScriptException("Wait(int) expects one argument", call.line());
+				}
+				host.waitTicks(asInt(args.getFirst(), call.line()));
+				throw new ScriptYield();
+			}
 			default -> throw new ScriptException("Unknown method '" + name + "'", call.line());
 		};
+	}
+
+	private Object readVar(String name, int line) throws ScriptException {
+		if (SETTINGS.contains(name)) {
+			return switch (name) {
+				case "speed" -> host.getSpeed();
+				case "range" -> host.getRange();
+				case "autoPickup" -> host.getAutoPickup();
+				default -> throw new ScriptException("Unknown setting '" + name + "'", line);
+			};
+		}
+		if (!locals.containsKey(name)) {
+			throw new ScriptException("Undefined variable '" + name + "'", line);
+		}
+		return locals.get(name);
+	}
+
+	private void writeVar(String name, Object value, int line, boolean declaring) throws ScriptException {
+		if (SETTINGS.contains(name)) {
+			switch (name) {
+				case "speed" -> host.setSpeed(asInt(value, line));
+				case "range" -> host.setRange(asInt(value, line));
+				case "autoPickup" -> host.setAutoPickup(isTruthy(value));
+				default -> throw new ScriptException("Unknown setting '" + name + "'", line);
+			}
+			return;
+		}
+		if (!declaring && !locals.containsKey(name)) {
+			throw new ScriptException("Undefined variable '" + name + "'", line);
+		}
+		locals.put(name, value);
 	}
 
 	private Object coerce(String typeName, Object value, int line) throws ScriptException {
@@ -181,7 +328,7 @@ public final class Interpreter {
 
 	private void bump() throws ScriptException {
 		if (opcodesRemaining-- <= 0) {
-			throw new ScriptException("Opcode budget exceeded");
+			throw new ScriptException("Opcode budget exceeded (loop/script too heavy for one tick)");
 		}
 	}
 
@@ -220,5 +367,39 @@ public final class Interpreter {
 
 	private static String typeName(Object value) {
 		return value == null ? "null" : value.getClass().getSimpleName().toLowerCase(Locale.ROOT);
+	}
+
+	private static final class Frame {
+		enum Kind {
+			SEQ,
+			WHILE,
+			FOR
+		}
+
+		final Kind kind;
+		final List<Ast.Stmt> statements;
+		int index;
+		final Ast.Stmt.While whileStmt;
+		final Ast.Stmt.For forStmt;
+		int iterations;
+
+		private Frame(Kind kind, List<Ast.Stmt> statements, Ast.Stmt.While whileStmt, Ast.Stmt.For forStmt) {
+			this.kind = kind;
+			this.statements = statements;
+			this.whileStmt = whileStmt;
+			this.forStmt = forStmt;
+		}
+
+		static Frame seq(List<Ast.Stmt> statements) {
+			return new Frame(Kind.SEQ, statements, null, null);
+		}
+
+		static Frame whileLoop(Ast.Stmt.While whileStmt) {
+			return new Frame(Kind.WHILE, List.of(), whileStmt, null);
+		}
+
+		static Frame forLoop(Ast.Stmt.For forStmt) {
+			return new Frame(Kind.FOR, List.of(), null, forStmt);
+		}
 	}
 }
