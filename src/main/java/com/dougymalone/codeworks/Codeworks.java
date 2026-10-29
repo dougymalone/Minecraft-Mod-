@@ -1,21 +1,29 @@
 package com.dougymalone.codeworks;
 
+import com.dougymalone.codeworks.channel.MachineIndex;
+import com.dougymalone.codeworks.network.ModNetworking;
+import com.dougymalone.codeworks.registry.ModBlockEntities;
+import com.dougymalone.codeworks.registry.ModBlocks;
+import com.dougymalone.codeworks.registry.ModItems;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Codeworks entrypoint. Gameplay machines were soft-reset; scaffolding remains
- * for the next rebuild of programmable Create-inspired blocks.
- */
 public class Codeworks implements ModInitializer {
 	public static final String MOD_ID = "codeworks";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
 	@Override
 	public void onInitialize() {
-		LOGGER.info("Codeworks initialized (no gameplay machines — soft reset)");
+		ModBlocks.register();
+		ModBlockEntities.register();
+		ModItems.register();
+		ModNetworking.registerCommon();
+		ModNetworking.registerServerReceivers();
+		ServerLifecycleEvents.SERVER_STOPPED.register(server -> MachineIndex.clearAll());
+		LOGGER.info("Codeworks initialized (Central Command architecture)");
 	}
 
 	public static Identifier id(String path) {

@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "front": "codeworks:block/breaker_front",
+    "side": "codeworks:block/breaker_side",
+    "top": "codeworks:block/breaker_top"
+  }
+}

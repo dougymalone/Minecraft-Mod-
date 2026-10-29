@@ -3,7 +3,7 @@
 	"id": "codeworks",
 	"version": "${version}",
 	"name": "Codeworks",
-	"description": "Fabric scaffold for Create-inspired programmable machines (gameplay soft-reset; scripting returning).",
+	"description": "Central Command scripts drive Breakers (and future machines) over shared channels.",
 	"authors": [
 		"Dougy Malone"
 	],

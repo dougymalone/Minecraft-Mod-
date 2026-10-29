@@ -1,10 +1,12 @@
 # Codeworks
 
-Fabric mod for Minecraft **26.3** (Java 25, MIT). Scaffold for Create-inspired programmable machines driven by in-game scripts.
+Fabric mod for Minecraft **26.3**: **Central Command** runs all C#-like scripts and drives actuator machines over **channels**.
 
-## Status
+## Architecture
 
-**Gameplay soft reset:** Breaker, Placer, Channel Adapter, wireless bus, and the machine script/Help UI were removed so we can rebuild from scratch. The Fabric project (build, `launch.bat`, modid `codeworks`, MIT) stays. Scripting and machines will return in later PRs.
+- **Central Command** — only place scripts live (Channels / Breaker / Placer stub / Script / Help tabs)
+- **Breaker** — channel selector only; Command calls `Break("channel")` to harvest in front
+- Placer + Channel Adapter return in later PRs
 
 ## Requirements
 
@@ -13,12 +15,18 @@ Fabric mod for Minecraft **26.3** (Java 25, MIT). Scaffold for Create-inspired p
 
 ## Build & run
 
-**Windows:** double-click `launch.bat` (uses JDK 25 if present, then runs the client).
+**Windows:** double-click `launch.bat`.
 
 ```bash
 ./gradlew build
 ./gradlew runClient
 ```
+
+## Try it
+
+1. Place **Central Command** → Channels tab → add `mine`
+2. Place **Breaker** facing blocks → set channel to `mine`
+3. Script tab (default script) → Save → Command breaks via those Breakers
 
 ## License
 
