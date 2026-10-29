@@ -17,10 +17,13 @@ Fabric mod for Minecraft **26.3**: Create-inspired programmable machines driven 
 
 ## Build & run
 
+**Windows:** double-click `launch.bat` (uses JDK 25 if present, then runs the client).
+
 ```bash
 ./gradlew build
 ./gradlew runClient
 ```
+
 
 ## Try it in-game
 
