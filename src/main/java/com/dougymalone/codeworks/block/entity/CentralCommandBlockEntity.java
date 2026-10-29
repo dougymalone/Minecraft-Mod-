@@ -9,6 +9,7 @@ import com.dougymalone.codeworks.script.Ast;
 import com.dougymalone.codeworks.script.HostApi;
 import com.dougymalone.codeworks.script.Interpreter;
 import com.dougymalone.codeworks.script.ScriptException;
+import com.dougymalone.codeworks.script.ScriptSections;
 import com.dougymalone.codeworks.script.ScriptYield;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,42 +24,45 @@ import net.minecraft.world.level.storage.ValueOutput;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Sole script host. Owns the channel registry and commands Breakers (and later Placers).
+ * Sole script host. Owns channel registry + multiple named script sections.
+ * Every enabled, non-empty, successfully parsed section ticks each server tick.
  */
 public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
-	public static final int MAX_SCRIPT_LENGTH = 12000;
+	public static final int MAX_SCRIPT_LENGTH = ScriptSections.MAX_SCRIPT_LENGTH;
 	public static final int MAX_CHANNELS = 32;
+	public static final String DEFAULT_SCRIPT = ScriptSections.DEFAULT_SCRIPT;
 
-	public static final String DEFAULT_SCRIPT = """
-		// Central Command — only place scripts live
-		// 1) Channels tab: add several ids (e.g. mine + quarry)
-		// 2) Point each Breaker at ONE of those channels
-		// 3) This script can drive many channels in one tick
-		if (HasChannel("mine") && BreakerCount("mine") > 0) {
-		  if (Break("mine")) {
-		    Log("mine ok");
-		  }
+	private static final class Slot {
+		String name;
+		String source;
+		boolean enabled;
+		Ast.@Nullable Program compiled;
+		@Nullable Interpreter interpreter;
+		int waitTicks;
+		boolean parseOk = true;
+		@Nullable String parseError;
+
+		Slot(ScriptSections.Section section) {
+			this.name = section.name;
+			this.source = section.source;
+			this.enabled = section.enabled;
 		}
-		if (HasChannel("quarry") && BreakerCount("quarry") > 0) {
-		  if (Break("quarry")) {
-		    Log("quarry ok");
-		  }
+
+		ScriptSections.Section toSection() {
+			return new ScriptSections.Section(name, source, enabled);
 		}
-		Wait(40);
-		""";
+	}
 
 	private final List<String> channels = new ArrayList<>();
-	private String scriptSource = DEFAULT_SCRIPT;
+	private final List<Slot> slots = new ArrayList<>();
+	private String selectedScript = ScriptSections.MAIN;
 	private String status = "Ready";
-	private boolean running = true;
-	private int waitTicks;
-	private Ast.@Nullable Program compiled;
-	private @Nullable Interpreter activeInterpreter;
+	private @Nullable Slot activeSlot;
 	private boolean indexed;
 
 	public CentralCommandBlockEntity(BlockPos pos, BlockState state) {
 		super(ModBlockEntities.CENTRAL_COMMAND, pos, state);
-		recompile(true);
+		replaceSlots(ScriptSections.defaultList(), true);
 	}
 
 	public static void serverTick(Level level, BlockPos pos, BlockState state, CentralCommandBlockEntity command) {
@@ -67,44 +71,50 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 
 	private void tickServer() {
 		ensureIndexed();
-		if (!running || compiled == null) {
-			return;
-		}
-		if (waitTicks > 0) {
-			waitTicks--;
-			return;
-		}
-		try {
-			if (activeInterpreter == null || activeInterpreter.isFinished()) {
-				activeInterpreter = new Interpreter(compiled, this);
-				activeInterpreter.start();
-			} else {
-				activeInterpreter.resume();
+		for (Slot slot : slots) {
+			if (!slot.enabled || slot.source.isBlank() || !slot.parseOk || slot.compiled == null) {
+				continue;
 			}
-		} catch (ScriptYield ignored) {
-			// keep interpreter
-		} catch (ScriptException exception) {
-			running = false;
-			activeInterpreter = null;
-			status = "Error: " + exception.getMessage();
-			setChanged();
-			Codeworks.LOGGER.debug("Central Command script error at {}: {}", worldPosition, exception.getMessage());
-		} catch (RuntimeException exception) {
-			running = false;
-			activeInterpreter = null;
-			status = "Error: internal fault";
-			setChanged();
-			Codeworks.LOGGER.warn("Central Command crashed at {}", worldPosition, exception);
+			activeSlot = slot;
+			try {
+				if (slot.waitTicks > 0) {
+					slot.waitTicks--;
+					continue;
+				}
+				try {
+					if (slot.interpreter == null || slot.interpreter.isFinished()) {
+						slot.interpreter = new Interpreter(slot.compiled, this);
+						slot.interpreter.start();
+					} else {
+						slot.interpreter.resume();
+					}
+				} catch (ScriptYield ignored) {
+					// keep interpreter; Wait set slot.waitTicks via host
+				} catch (ScriptException exception) {
+					slot.interpreter = null;
+					status = "[" + slot.name + "] Error: " + exception.getMessage();
+					setChanged();
+					Codeworks.LOGGER.debug("Central Command script '{}' error at {}: {}", slot.name, worldPosition, exception.getMessage());
+				} catch (RuntimeException exception) {
+					slot.interpreter = null;
+					status = "[" + slot.name + "] Error: internal fault";
+					setChanged();
+					Codeworks.LOGGER.warn("Central Command script '{}' crashed at {}", slot.name, worldPosition, exception);
+				}
+			} finally {
+				activeSlot = null;
+			}
 		}
 	}
 
 	public void openUi(ServerPlayer player) {
 		ServerPlayNetworking.send(player, new OpenCentralCommandPayload(
 			worldPosition,
-			scriptSource,
 			status,
 			String.join("\n", channels),
-			countsCsv()
+			countsCsv(),
+			ScriptSections.pack(toSections()),
+			selectedScript
 		));
 	}
 
@@ -119,12 +129,7 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 		return String.join("\n", counts);
 	}
 
-	public void applyFromPlayer(String script, List<String> newChannels) {
-		if (script.length() > MAX_SCRIPT_LENGTH) {
-			status = "Error: script too long";
-			setChanged();
-			return;
-		}
+	public void applyFromPlayer(String scriptsPack, List<String> newChannels, String selected) {
 		channels.clear();
 		for (String raw : newChannels) {
 			String id = ChannelIds.sanitize(raw);
@@ -132,18 +137,100 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 				channels.add(id);
 			}
 		}
-		scriptSource = script;
-		recompile(true);
-		// recompile sets status to OK / parse error — overlay channel summary when parse ok
-		if (running) {
-			if (channels.isEmpty()) {
-				status = "OK — no channels yet";
-			} else {
-				status = "OK — " + channels.size() + " channel(s): " + String.join(", ", channels);
+		List<ScriptSections.Section> sections = ScriptSections.unpack(scriptsPack);
+		for (ScriptSections.Section section : sections) {
+			if (section.source.length() > MAX_SCRIPT_LENGTH) {
+				status = "Error: script too long in " + section.name;
+				setChanged();
+				return;
 			}
 		}
+		replaceSlots(sections, true);
+		String sel = ScriptSections.sanitizeName(selected);
+		if (ScriptSections.containsName(toSections(), sel)) {
+			selectedScript = sel;
+		} else {
+			selectedScript = slots.getFirst().name;
+		}
+		refreshStatusSummary();
 		ensureIndexed();
 		setChanged();
+	}
+
+	private List<ScriptSections.Section> toSections() {
+		List<ScriptSections.Section> list = new ArrayList<>(slots.size());
+		for (Slot slot : slots) {
+			list.add(slot.toSection());
+		}
+		return list;
+	}
+
+	private void replaceSlots(List<ScriptSections.Section> sections, boolean resetRuntime) {
+		slots.clear();
+		for (ScriptSections.Section section : ScriptSections.normalize(sections)) {
+			Slot slot = new Slot(section);
+			compileSlot(slot, resetRuntime);
+			slots.add(slot);
+		}
+		if (slots.isEmpty()) {
+			Slot main = new Slot(new ScriptSections.Section(ScriptSections.MAIN, DEFAULT_SCRIPT, true));
+			compileSlot(main, true);
+			slots.add(main);
+		}
+		if (!ScriptSections.containsName(toSections(), selectedScript)) {
+			selectedScript = slots.getFirst().name;
+		}
+	}
+
+	private void compileSlot(Slot slot, boolean resetRuntime) {
+		if (slot.source.isBlank()) {
+			slot.compiled = null;
+			slot.parseOk = true;
+			slot.parseError = null;
+			slot.interpreter = null;
+			slot.waitTicks = 0;
+			return;
+		}
+		try {
+			slot.compiled = Interpreter.compile(slot.source);
+			slot.parseOk = true;
+			slot.parseError = null;
+			if (resetRuntime) {
+				slot.waitTicks = 0;
+				slot.interpreter = null;
+			}
+		} catch (ScriptException exception) {
+			slot.compiled = null;
+			slot.parseOk = false;
+			slot.parseError = exception.getMessage();
+			slot.interpreter = null;
+			slot.waitTicks = 0;
+		}
+	}
+
+	private void refreshStatusSummary() {
+		int enabled = 0;
+		int errors = 0;
+		for (Slot slot : slots) {
+			if (slot.enabled && !slot.source.isBlank()) {
+				enabled++;
+			}
+			if (!slot.parseOk) {
+				errors++;
+			}
+		}
+		if (errors > 0) {
+			for (Slot slot : slots) {
+				if (!slot.parseOk) {
+					status = "[" + slot.name + "] Parse error: " + slot.parseError;
+					return;
+				}
+			}
+		}
+		String channelPart = channels.isEmpty()
+			? "no channels"
+			: channels.size() + " channel(s): " + String.join(", ", channels);
+		status = "OK — " + slots.size() + " script(s), " + enabled + " enabled — " + channelPart;
 	}
 
 	private void ensureIndexed() {
@@ -171,33 +258,23 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 	}
 
 	public String getScriptSource() {
-		return scriptSource;
+		for (Slot slot : slots) {
+			if (slot.name.equals(selectedScript)) {
+				return slot.source;
+			}
+		}
+		return slots.isEmpty() ? DEFAULT_SCRIPT : slots.getFirst().source;
 	}
 
 	public String getStatus() {
 		return status;
 	}
 
-	private void recompile(boolean resetRuntime) {
-		try {
-			compiled = Interpreter.compile(scriptSource);
-			running = true;
-			status = "OK";
-			if (resetRuntime) {
-				waitTicks = 0;
-				activeInterpreter = null;
-			}
-		} catch (ScriptException exception) {
-			compiled = null;
-			running = false;
-			activeInterpreter = null;
-			status = "Parse error: " + exception.getMessage();
-		}
-	}
-
 	@Override
 	public void log(String message) {
-		status = message == null ? "" : (message.length() > 120 ? message.substring(0, 120) : message);
+		String body = message == null ? "" : (message.length() > 100 ? message.substring(0, 100) : message);
+		String prefix = activeSlot != null ? "[" + activeSlot.name + "] " : "";
+		status = prefix + body;
 		setChanged();
 	}
 
@@ -206,7 +283,10 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 		if (ticks < 0) {
 			throw new ScriptException("Wait ticks must be >= 0");
 		}
-		waitTicks = Math.min(ticks, 20 * 60 * 5);
+		int capped = Math.min(ticks, 20 * 60 * 5);
+		if (activeSlot != null) {
+			activeSlot.waitTicks = capped;
+		}
 	}
 
 	@Override
@@ -243,7 +323,8 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 				any = true;
 			}
 		}
-		status = any ? "Break ok @" + id : "Break miss @" + id;
+		String prefix = activeSlot != null ? "[" + activeSlot.name + "] " : "";
+		status = prefix + (any ? "Break ok @" + id : "Break miss @" + id);
 		setChanged();
 		return any;
 	}
@@ -251,31 +332,43 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 	@Override
 	protected void loadAdditional(ValueInput input) {
 		super.loadAdditional(input);
-		scriptSource = input.getStringOr("Script", DEFAULT_SCRIPT);
 		status = input.getStringOr("Status", "Ready");
-		running = input.getBooleanOr("Running", true);
-		waitTicks = input.getIntOr("WaitTicks", 0);
+		selectedScript = ScriptSections.sanitizeName(input.getStringOr("SelectedScript", ScriptSections.MAIN));
 		channels.clear();
-		String packed = input.getStringOr("Channels", "");
-		if (!packed.isEmpty()) {
-			for (String part : packed.split("\n")) {
+		String packedChannels = input.getStringOr("Channels", "");
+		if (!packedChannels.isEmpty()) {
+			for (String part : packedChannels.split("\n")) {
 				String id = ChannelIds.sanitize(part);
 				if (!id.isEmpty() && !channels.contains(id) && channels.size() < MAX_CHANNELS) {
 					channels.add(id);
 				}
 			}
 		}
+
+		String scriptsPack = input.getStringOr("Scripts", "");
+		List<ScriptSections.Section> loaded;
+		if (!scriptsPack.isBlank()) {
+			loaded = ScriptSections.unpack(scriptsPack);
+		} else {
+			// Migrate legacy single Script field → main
+			String legacy = input.getStringOr("Script", DEFAULT_SCRIPT);
+			loaded = List.of(new ScriptSections.Section(ScriptSections.MAIN, legacy, true));
+		}
+		replaceSlots(loaded, true);
+		if (!ScriptSections.containsName(toSections(), selectedScript)) {
+			selectedScript = slots.getFirst().name;
+		}
 		indexed = false;
-		recompile(true);
 	}
 
 	@Override
 	protected void saveAdditional(ValueOutput output) {
 		super.saveAdditional(output);
-		output.putString("Script", scriptSource);
+		output.putString("Scripts", ScriptSections.pack(toSections()));
+		// Legacy single-field mirror of selected / main source for older readers
+		output.putString("Script", getScriptSource());
+		output.putString("SelectedScript", selectedScript);
 		output.putString("Status", status);
-		output.putBoolean("Running", running);
-		output.putInt("WaitTicks", waitTicks);
 		output.putString("Channels", String.join("\n", channels));
 	}
 }

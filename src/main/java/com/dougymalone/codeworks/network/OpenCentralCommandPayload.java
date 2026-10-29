@@ -9,10 +9,11 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 public record OpenCentralCommandPayload(
 	BlockPos pos,
-	String script,
 	String status,
 	String channelsCsv,
-	String breakerCountsCsv
+	String breakerCountsCsv,
+	String scriptsPack,
+	String selectedScript
 ) implements CustomPacketPayload {
 	public static final CustomPacketPayload.Type<OpenCentralCommandPayload> TYPE =
 		new CustomPacketPayload.Type<>(Codeworks.id("open_central_command"));
@@ -21,13 +22,15 @@ public record OpenCentralCommandPayload(
 		BlockPos.STREAM_CODEC,
 		OpenCentralCommandPayload::pos,
 		ByteBufCodecs.STRING_UTF8,
-		OpenCentralCommandPayload::script,
-		ByteBufCodecs.STRING_UTF8,
 		OpenCentralCommandPayload::status,
 		ByteBufCodecs.STRING_UTF8,
 		OpenCentralCommandPayload::channelsCsv,
 		ByteBufCodecs.STRING_UTF8,
 		OpenCentralCommandPayload::breakerCountsCsv,
+		ByteBufCodecs.STRING_UTF8,
+		OpenCentralCommandPayload::scriptsPack,
+		ByteBufCodecs.STRING_UTF8,
+		OpenCentralCommandPayload::selectedScript,
 		OpenCentralCommandPayload::new
 	);
 

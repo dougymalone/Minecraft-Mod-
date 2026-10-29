@@ -17,7 +17,7 @@ public final class ScriptHelp {
 		new ApiEntry(
 			"void Wait(int ticks)",
 			"void",
-			"Pause this Command script across game ticks.",
+			"Pause this script section across game ticks (other sections keep running).",
 			"Break(\"mine\"); Wait(20);"
 		),
 		new ApiEntry(
@@ -55,6 +55,8 @@ public final class ScriptHelp {
 
 	public static final List<String> NOTES = List.of(
 		"ALL scripts live only in Central Command — Breakers have a channel selector, not a script editor.",
+		"Script tab: multiple named sections (first is always main). + adds, Rename, On/Off, Delete (keeps ≥1).",
+		"Every enabled non-empty section runs each tick with its own Wait; Log is prefixed [name].",
 		"Channels tab holds many ids at once: Add appends, click a row to select, × removes only that row.",
 		"Each Breaker still picks ONE channel (Prev/Next or list from nearby Commands).",
 		"Scripts may Break()/BreakerCount() many registered channels in the same tick.",
