@@ -57,6 +57,17 @@ public class BreakerHelpScreen extends Screen {
 			out.add(FormattedCharSequence.EMPTY);
 		}
 
+		out.addAll(this.font.split(Component.translatable("gui.codeworks.help_builtins_header"), maxWidth));
+		out.add(FormattedCharSequence.EMPTY);
+		for (ScriptHelp.ApiEntry entry : ScriptHelp.BUILTINS) {
+			Component sig = Component.literal(entry.signature() + "  →  " + entry.returns())
+				.withStyle(style -> style.withColor(0x66FFCC));
+			out.addAll(this.font.split(sig, maxWidth));
+			out.addAll(this.font.split(Component.literal("  " + entry.description()).withStyle(style -> style.withColor(0xC0C0C0)), maxWidth));
+			out.addAll(this.font.split(Component.literal("  ex: " + entry.example()).withStyle(style -> style.withColor(0x88CCFF)), maxWidth));
+			out.add(FormattedCharSequence.EMPTY);
+		}
+
 		out.addAll(this.font.split(Component.translatable("gui.codeworks.help_settings_header"), maxWidth));
 		out.add(FormattedCharSequence.EMPTY);
 		for (ScriptHelp.SettingEntry setting : ScriptHelp.SETTINGS) {
