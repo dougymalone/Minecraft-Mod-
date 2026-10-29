@@ -12,10 +12,18 @@ public final class Lexer {
 		KEYWORDS.put("int", TokenType.INT_KW);
 		KEYWORDS.put("bool", TokenType.BOOL_KW);
 		KEYWORDS.put("string", TokenType.STRING_KW);
+		KEYWORDS.put("void", TokenType.VOID_KW);
 		KEYWORDS.put("if", TokenType.IF);
 		KEYWORDS.put("else", TokenType.ELSE);
 		KEYWORDS.put("while", TokenType.WHILE);
 		KEYWORDS.put("for", TokenType.FOR);
+		KEYWORDS.put("switch", TokenType.SWITCH);
+		KEYWORDS.put("case", TokenType.CASE);
+		KEYWORDS.put("default", TokenType.DEFAULT);
+		KEYWORDS.put("break", TokenType.BREAK);
+		KEYWORDS.put("continue", TokenType.CONTINUE);
+		KEYWORDS.put("return", TokenType.RETURN);
+		KEYWORDS.put("new", TokenType.NEW);
 		KEYWORDS.put("true", TokenType.TRUE);
 		KEYWORDS.put("false", TokenType.FALSE);
 	}
@@ -46,16 +54,40 @@ public final class Lexer {
 			case ')' -> add(TokenType.RPAREN);
 			case '{' -> add(TokenType.LBRACE);
 			case '}' -> add(TokenType.RBRACE);
+			case '[' -> add(TokenType.LBRACK);
+			case ']' -> add(TokenType.RBRACK);
 			case ';' -> add(TokenType.SEMI);
 			case ',' -> add(TokenType.COMMA);
-			case '+' -> add(TokenType.PLUS);
-			case '-' -> add(TokenType.MINUS);
-			case '*' -> add(TokenType.STAR);
+			case '.' -> add(TokenType.DOT);
+			case ':' -> add(TokenType.COLON);
+			case '+' -> {
+				if (match('+')) {
+					add(TokenType.PLUSPLUS);
+				} else if (match('=')) {
+					add(TokenType.PLUSEQ);
+				} else {
+					add(TokenType.PLUS);
+				}
+			}
+			case '-' -> {
+				if (match('-')) {
+					add(TokenType.MINUSMINUS);
+				} else if (match('=')) {
+					add(TokenType.MINUSEQ);
+				} else {
+					add(TokenType.MINUS);
+				}
+			}
+			case '*' -> add(match('=') ? TokenType.STAREQ : TokenType.STAR);
 			case '/' -> {
 				if (match('/')) {
 					while (peek() != '\n' && !isAtEnd()) {
 						advance();
 					}
+				} else if (match('*')) {
+					blockComment();
+				} else if (match('=')) {
+					add(TokenType.SLASHEQ);
 				} else {
 					add(TokenType.SLASH);
 				}
@@ -92,6 +124,21 @@ public final class Lexer {
 				}
 			}
 		}
+	}
+
+	private void blockComment() throws ScriptException {
+		while (!isAtEnd()) {
+			if (peek() == '*' && peekNext() == '/') {
+				advance();
+				advance();
+				return;
+			}
+			if (peek() == '\n') {
+				line++;
+			}
+			advance();
+		}
+		throw new ScriptException("Unterminated block comment", line);
 	}
 
 	private void string() throws ScriptException {
@@ -155,6 +202,10 @@ public final class Lexer {
 
 	private char peek() {
 		return isAtEnd() ? '\0' : source.charAt(current);
+	}
+
+	private char peekNext() {
+		return current + 1 >= source.length() ? '\0' : source.charAt(current + 1);
 	}
 
 	private boolean isAtEnd() {
