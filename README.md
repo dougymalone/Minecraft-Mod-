@@ -24,9 +24,9 @@ Fabric mod for Minecraft **26.3**: **Central Command** runs all C#-like scripts 
 
 ## Try it
 
-1. Place **Central Command** → Channels tab → add `mine`
-2. Place **Breaker** facing blocks → set channel to `mine`
-3. Script tab (default script) → Save → Command breaks via those Breakers
+1. Place **Central Command** → Channels tab → add several ids (e.g. `mine`, `quarry`); click a row to select, × to remove one
+2. Place **Breaker** facing blocks → pick **one** channel (Prev/Next or list from Command, or type it)
+3. Script tab can `Break()` many registered channels → Save → Command drives those Breakers
 
 ## License
 

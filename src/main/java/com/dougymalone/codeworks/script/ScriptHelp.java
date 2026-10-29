@@ -55,7 +55,9 @@ public final class ScriptHelp {
 
 	public static final List<String> NOTES = List.of(
 		"ALL scripts live only in Central Command — Breakers have a channel selector, not a script editor.",
-		"Add channels in the Channels tab, then set each Breaker to the same channel id.",
+		"Channels tab holds many ids at once: Add appends, click a row to select, × removes only that row.",
+		"Each Breaker still picks ONE channel (Prev/Next or list from nearby Commands).",
+		"Scripts may Break()/BreakerCount() many registered channels in the same tick.",
 		"Break(channel) fans out to every loaded Breaker on that channel in this dimension.",
 		"Placer tab / placed events come next PR — design reserved.",
 		"C#-like dialect: if/else/switch, while/for, functions, arrays, Math, // and /* */ comments.",

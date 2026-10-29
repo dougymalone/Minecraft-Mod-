@@ -20,7 +20,7 @@ import net.minecraft.util.FormattedCharSequence;
 
 /**
  * Rich Central Command UI: Channels / Breaker / Placer(stub) / Script / Help.
- * Opaque ARGB text for MC 26.3.
+ * Opaque ARGB text for MC 26.3. Supports many registered channels with select + remove.
  */
 public class CentralCommandScreen extends Screen {
 	private static final int TEXT = 0xFFFFFFFF;
@@ -41,6 +41,7 @@ public class CentralCommandScreen extends Screen {
 	private final List<String> channels = new ArrayList<>();
 	private final List<Integer> breakerCounts = new ArrayList<>();
 	private String script;
+	private String selectedChannel = "";
 	private Tab tab = Tab.CHANNELS;
 
 	private EditBox channelInput;
@@ -78,6 +79,9 @@ public class CentralCommandScreen extends Screen {
 		}
 		while (this.breakerCounts.size() < this.channels.size()) {
 			this.breakerCounts.add(0);
+		}
+		if (!this.channels.isEmpty()) {
+			this.selectedChannel = this.channels.get(0);
 		}
 	}
 
@@ -121,12 +125,12 @@ public class CentralCommandScreen extends Screen {
 		}
 
 		this.addRenderableWidget(
-			Button.builder(Component.translatable("gui.codeworks.save"), b -> this.save())
+			Button.builder(Component.translatable("gui.codeworks.save"), b -> this.saveAndClose())
 				.bounds(this.width / 2 - 154, this.height - 28, 100, 20)
 				.build()
 		);
 		this.addRenderableWidget(
-			Button.builder(CommonComponents.GUI_DONE, b -> this.onClose())
+			Button.builder(CommonComponents.GUI_DONE, b -> this.saveAndClose())
 				.bounds(this.width / 2 - 50, this.height - 28, 100, 20)
 				.build()
 		);
@@ -160,11 +164,20 @@ public class CentralCommandScreen extends Screen {
 				break;
 			}
 			final int index = i;
-			String label = this.channels.get(i) + "  (" + this.breakerCounts.get(i) + " breakers)";
-			Button remove = Button.builder(Component.literal("× " + label), b -> this.removeChannel(index))
-				.bounds(x, y, width, 20)
+			String id = this.channels.get(i);
+			boolean selected = id.equals(this.selectedChannel);
+			String marker = selected ? "> " : "  ";
+			String label = marker + id + "  (" + this.breakerCounts.get(i) + ")";
+			int selectW = width - 28;
+			Button select = Button.builder(Component.literal(label), b -> this.selectChannel(index))
+				.bounds(x, y, selectW, 20)
 				.build();
+			Button remove = Button.builder(Component.literal("×"), b -> this.removeChannel(index))
+				.bounds(x + selectW + 4, y, 24, 20)
+				.build();
+			this.addRenderableWidget(select);
 			this.addRenderableWidget(remove);
+			this.dynamicButtons.add(select);
 			this.dynamicButtons.add(remove);
 			y += 22;
 		}
@@ -194,7 +207,17 @@ public class CentralCommandScreen extends Screen {
 		}
 		this.channels.add(id);
 		this.breakerCounts.add(0);
+		this.selectedChannel = id;
 		this.channelInput.setValue("");
+		this.persistChannels();
+		this.rebuildWidgets();
+	}
+
+	private void selectChannel(int index) {
+		if (index < 0 || index >= this.channels.size()) {
+			return;
+		}
+		this.selectedChannel = this.channels.get(index);
 		this.rebuildWidgets();
 	}
 
@@ -202,10 +225,14 @@ public class CentralCommandScreen extends Screen {
 		if (index < 0 || index >= this.channels.size()) {
 			return;
 		}
-		this.channels.remove(index);
+		String removed = this.channels.remove(index);
 		if (index < this.breakerCounts.size()) {
 			this.breakerCounts.remove(index);
 		}
+		if (removed.equals(this.selectedChannel)) {
+			this.selectedChannel = this.channels.isEmpty() ? "" : this.channels.get(Math.min(index, this.channels.size() - 1));
+		}
+		this.persistChannels();
 		this.rebuildWidgets();
 	}
 
@@ -215,13 +242,18 @@ public class CentralCommandScreen extends Screen {
 		}
 	}
 
-	private void save() {
+	/** Persist channel list (and script) without closing — keeps multi-add from being lost. */
+	private void persistChannels() {
 		captureScriptIfNeeded();
 		ClientPlayNetworking.send(new SaveCentralCommandPayload(
 			this.pos,
 			this.script,
 			String.join("\n", this.channels)
 		));
+	}
+
+	private void saveAndClose() {
+		persistChannels();
 		this.onClose();
 	}
 
@@ -280,21 +312,32 @@ public class CentralCommandScreen extends Screen {
 		switch (this.tab) {
 			case CHANNELS -> {
 				graphics.text(this.font, Component.translatable("gui.codeworks.channels_blurb"), textX, y, MUTED);
+				if (!this.selectedChannel.isEmpty()) {
+					graphics.text(
+						this.font,
+						Component.translatable("gui.codeworks.selected_channel", this.selectedChannel),
+						textX,
+						y + 12,
+						ACCENT
+					);
+				}
 			}
 			case BREAKER -> {
 				graphics.text(this.font, Component.translatable("gui.codeworks.breaker_tab_title"), textX, y, ACCENT);
 				y += 14;
 				for (String line : Arrays.asList(
 					"Breakers have no scripts — only a channel selector.",
-					"Set the same channel id you added in Channels.",
-					"Command scripts call Break(\"channel\") to harvest.",
+					"Each Breaker picks ONE channel from those listed below.",
+					"Command scripts may call Break() on many channels.",
 					""
 				)) {
 					graphics.text(this.font, Component.literal(line), textX, y, MUTED);
 					y += 12;
 				}
 				for (int i = 0; i < this.channels.size(); i++) {
-					String line = this.channels.get(i) + ": " + this.breakerCounts.get(i) + " breaker(s) loaded";
+					String id = this.channels.get(i);
+					String marker = id.equals(this.selectedChannel) ? "> " : "  ";
+					String line = marker + id + ": " + this.breakerCounts.get(i) + " breaker(s) loaded";
 					graphics.text(this.font, Component.literal(line), textX, y, TEXT);
 					y += 12;
 					if (y > panelBottom - 10) {

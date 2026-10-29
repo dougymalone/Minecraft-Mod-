@@ -31,19 +31,18 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 
 	public static final String DEFAULT_SCRIPT = """
 		// Central Command — only place scripts live
-		// 1) Channels tab: add "mine"
-		// 2) Set Breaker channel to mine
-		// 3) This script commands those Breakers
-		if (HasChannel("mine")) {
-		  if (BreakerCount("mine") > 0) {
-		    if (Break("mine")) {
-		      Log("harvested");
-		    }
-		  } else {
-		    Log("no breakers on mine");
+		// 1) Channels tab: add several ids (e.g. mine + quarry)
+		// 2) Point each Breaker at ONE of those channels
+		// 3) This script can drive many channels in one tick
+		if (HasChannel("mine") && BreakerCount("mine") > 0) {
+		  if (Break("mine")) {
+		    Log("mine ok");
 		  }
-		} else {
-		  Log("add channel mine");
+		}
+		if (HasChannel("quarry") && BreakerCount("quarry") > 0) {
+		  if (Break("quarry")) {
+		    Log("quarry ok");
+		  }
 		}
 		Wait(40);
 		""";
@@ -55,6 +54,7 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 	private int waitTicks;
 	private Ast.@Nullable Program compiled;
 	private @Nullable Interpreter activeInterpreter;
+	private boolean indexed;
 
 	public CentralCommandBlockEntity(BlockPos pos, BlockState state) {
 		super(ModBlockEntities.CENTRAL_COMMAND, pos, state);
@@ -66,6 +66,7 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 	}
 
 	private void tickServer() {
+		ensureIndexed();
 		if (!running || compiled == null) {
 			return;
 		}
@@ -133,7 +134,28 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 		}
 		scriptSource = script;
 		recompile(true);
+		ensureIndexed();
 		setChanged();
+	}
+
+	private void ensureIndexed() {
+		if (!indexed && level != null && !level.isClientSide()) {
+			MachineIndex.registerCommand(this);
+			indexed = true;
+		}
+	}
+
+	@Override
+	public void setRemoved() {
+		MachineIndex.unregisterCommand(this);
+		indexed = false;
+		super.setRemoved();
+	}
+
+	@Override
+	public void clearRemoved() {
+		super.clearRemoved();
+		indexed = false;
 	}
 
 	public List<String> getChannels() {
@@ -230,11 +252,12 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 		if (!packed.isEmpty()) {
 			for (String part : packed.split("\n")) {
 				String id = ChannelIds.sanitize(part);
-				if (!id.isEmpty() && !channels.contains(id)) {
+				if (!id.isEmpty() && !channels.contains(id) && channels.size() < MAX_CHANNELS) {
 					channels.add(id);
 				}
 			}
 		}
+		indexed = false;
 		recompile(true);
 	}
 
