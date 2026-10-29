@@ -7,7 +7,9 @@ import com.dougymalone.codeworks.script.HostApi;
 import com.dougymalone.codeworks.script.Interpreter;
 import com.dougymalone.codeworks.script.ScriptException;
 import com.dougymalone.codeworks.script.ScriptYield;
+import com.dougymalone.codeworks.wireless.ChannelAdapterIndex;
 import com.dougymalone.codeworks.wireless.WirelessBus;
+import com.dougymalone.codeworks.wireless.WirelessKeys;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -296,6 +298,69 @@ public abstract class ScriptedMachineBlockEntity extends BlockEntity implements 
 			throw new ScriptException("Receive key must be non-empty (a-z, 0-9, _ - . /)");
 		}
 		return WirelessBus.receive(level, channel, safeKey);
+	}
+
+	@Override
+	public void pulse(String targetChannel) throws ScriptException {
+		if (level == null) {
+			return;
+		}
+		String safe = WirelessBus.sanitizeChannel(targetChannel);
+		if (safe.isEmpty()) {
+			throw new ScriptException("Pulse channel must be non-empty");
+		}
+		ChannelAdapterIndex.pulse(level, safe, WirelessKeys.DEFAULT_PULSE_TICKS);
+		status = "Pulse " + safe;
+		setChanged();
+	}
+
+	@Override
+	public void setPower(String targetChannel, boolean on) throws ScriptException {
+		if (level == null) {
+			return;
+		}
+		String safe = WirelessBus.sanitizeChannel(targetChannel);
+		if (safe.isEmpty()) {
+			throw new ScriptException("SetPower channel must be non-empty");
+		}
+		ChannelAdapterIndex.setPower(level, safe, on);
+		status = (on ? "Power on " : "Power off ") + safe;
+		setChanged();
+	}
+
+	@Override
+	public boolean getExtended(String targetChannel) throws ScriptException {
+		if (level == null) {
+			return false;
+		}
+		String safe = WirelessBus.sanitizeChannel(targetChannel);
+		return "1".equals(WirelessBus.receive(level, safe, WirelessKeys.EXTENDED));
+	}
+
+	@Override
+	public int getPower(String targetChannel) throws ScriptException {
+		if (level == null) {
+			return 0;
+		}
+		String safe = WirelessBus.sanitizeChannel(targetChannel);
+		String raw = WirelessBus.receive(level, safe, WirelessKeys.POWER);
+		if (raw.isEmpty()) {
+			return 0;
+		}
+		try {
+			return Math.clamp(Integer.parseInt(raw), 0, 15);
+		} catch (NumberFormatException exception) {
+			return 0;
+		}
+	}
+
+	@Override
+	public String getHost(String targetChannel) throws ScriptException {
+		if (level == null) {
+			return "";
+		}
+		String safe = WirelessBus.sanitizeChannel(targetChannel);
+		return WirelessBus.receive(level, safe, WirelessKeys.HOST);
 	}
 
 	@Override

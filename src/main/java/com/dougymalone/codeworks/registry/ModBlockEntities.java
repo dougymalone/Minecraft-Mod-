@@ -2,6 +2,7 @@ package com.dougymalone.codeworks.registry;
 
 import com.dougymalone.codeworks.Codeworks;
 import com.dougymalone.codeworks.block.entity.BreakerBlockEntity;
+import com.dougymalone.codeworks.block.entity.ChannelAdapterBlockEntity;
 import com.dougymalone.codeworks.block.entity.PlacerBlockEntity;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.core.Registry;
@@ -19,6 +20,12 @@ public final class ModBlockEntities {
 		BuiltInRegistries.BLOCK_ENTITY_TYPE,
 		Codeworks.id("placer"),
 		FabricBlockEntityTypeBuilder.create(PlacerBlockEntity::new, ModBlocks.PLACER).build()
+	);
+
+	public static final BlockEntityType<ChannelAdapterBlockEntity> CHANNEL_ADAPTER = Registry.register(
+		BuiltInRegistries.BLOCK_ENTITY_TYPE,
+		Codeworks.id("channel_adapter"),
+		FabricBlockEntityTypeBuilder.create(ChannelAdapterBlockEntity::new, ModBlocks.CHANNEL_ADAPTER).build()
 	);
 
 	private ModBlockEntities() {

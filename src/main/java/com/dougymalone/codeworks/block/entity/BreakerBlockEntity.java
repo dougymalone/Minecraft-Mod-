@@ -9,18 +9,19 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class BreakerBlockEntity extends ScriptedMachineBlockEntity {
 	public static final String DEFAULT_SCRIPT = """
-		// Codeworks Breaker
+		// Codeworks Breaker — shares wireless bus with Placer + Channel Adapter
 		channel = "line1";
 		speed = 10;
 		range = 1;
-		if (Extended()) {
-		  Log("piston extended — waiting");
+		if (GetExtended("gate")) {
+		  Log("gate piston out — waiting");
 		  Wait(20);
 		}
 		if (HasBlock()) {
 		  string id = Sense();
 		  if (Harvest()) {
 		    Send("broke", id);
+		    Pulse("gate");
 		    Log("harvested " + id);
 		  }
 		}

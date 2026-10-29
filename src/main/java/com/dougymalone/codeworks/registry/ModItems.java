@@ -13,6 +13,7 @@ import net.minecraft.world.item.Item;
 public final class ModItems {
 	public static final Item BREAKER = registerBlockItem("breaker", ModBlocks.BREAKER);
 	public static final Item PLACER = registerBlockItem("placer", ModBlocks.PLACER);
+	public static final Item CHANNEL_ADAPTER = registerBlockItem("channel_adapter", ModBlocks.CHANNEL_ADAPTER);
 
 	private ModItems() {
 	}
@@ -21,10 +22,12 @@ public final class ModItems {
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.REDSTONE_BLOCKS).register(entries -> {
 			entries.accept(BREAKER);
 			entries.accept(PLACER);
+			entries.accept(CHANNEL_ADAPTER);
 		});
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
 			entries.accept(BREAKER);
 			entries.accept(PLACER);
+			entries.accept(CHANNEL_ADAPTER);
 		});
 	}
 

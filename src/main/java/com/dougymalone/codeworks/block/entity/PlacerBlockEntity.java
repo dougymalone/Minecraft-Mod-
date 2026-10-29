@@ -27,12 +27,16 @@ import net.minecraft.world.phys.Vec3;
  */
 public class PlacerBlockEntity extends ScriptedMachineBlockEntity {
 	public static final String DEFAULT_SCRIPT = """
-		// Codeworks Placer — insert one block by right-clicking with it
+		// Codeworks Placer — same bus as Breaker + Channel Adapter
 		channel = "line1";
 		speed = 8;
 		range = 1;
 		string signal = Receive("broke");
 		if (signal != "" && HasStoredBlock()) {
+		  if (!GetExtended("gate")) {
+		    Pulse("gate");
+		    Wait(8);
+		  }
 		  if (Place()) {
 		    Send("broke", "");
 		    Log("placed after " + signal);
