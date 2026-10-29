@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "condition": { "type": "minecraft:survives_explosion" },
+      "entries": [{ "type": "minecraft:item", "name": "codeworks:breaker" }],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "codeworks:blocks/breaker"
+}

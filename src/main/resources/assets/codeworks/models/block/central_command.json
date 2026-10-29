@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "codeworks:block/central_command_top",
+    "bottom": "codeworks:block/central_command_top",
+    "side": "codeworks:block/central_command_side"
+  }
+}

@@ -1,10 +1,11 @@
 package com.dougymalone.codeworks.client;
 
+import com.dougymalone.codeworks.client.network.ClientNetworking;
 import net.fabricmc.api.ClientModInitializer;
 
 public class CodeworksClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
-		// Client hooks will return with the next machine rebuild.
+		ClientNetworking.register();
 	}
 }

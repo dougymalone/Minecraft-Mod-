@@ -1,1 +1,25 @@
-{}
+{
+  "block.codeworks.central_command": "Central Command",
+  "item.codeworks.central_command": "Central Command",
+  "block.codeworks.breaker": "Breaker",
+  "item.codeworks.breaker": "Breaker",
+  "gui.codeworks.central_command_title": "Central Command",
+  "gui.codeworks.breaker_channel_title": "Breaker Channel",
+  "gui.codeworks.breaker_channel_hint": "Only setting: match a channel from Central Command",
+  "gui.codeworks.channel": "Channel",
+  "gui.codeworks.channel_hint": "e.g. mine",
+  "gui.codeworks.add_channel": "Add",
+  "gui.codeworks.save": "Save",
+  "gui.codeworks.tab_channels": "Channels",
+  "gui.codeworks.tab_breaker": "Breaker",
+  "gui.codeworks.tab_placer": "Placer",
+  "gui.codeworks.tab_script": "Script",
+  "gui.codeworks.tab_help": "Help",
+  "gui.codeworks.channels_blurb": "Add channels here, then set Breakers to the same id.",
+  "gui.codeworks.breaker_tab_title": "Breaker connections",
+  "gui.codeworks.placer_tab_title": "Placer (next)",
+  "gui.codeworks.placer_tab_stub": "Placer block + placed events land in the next PR. This tab is reserved.",
+  "gui.codeworks.script_placeholder": "Write C#-like scripts for Central Command only…",
+  "gui.codeworks.help_scroll_up": "Up",
+  "gui.codeworks.help_scroll_down": "Down"
+}
