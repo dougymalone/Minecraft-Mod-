@@ -1,7 +1,7 @@
 package com.dougymalone.codeworks.client.screen;
 
-import com.dougymalone.codeworks.block.entity.CoderBlockEntity;
-import com.dougymalone.codeworks.network.SaveCoderScriptPayload;
+import com.dougymalone.codeworks.block.entity.BreakerBlockEntity;
+import com.dougymalone.codeworks.network.SaveBreakerScriptPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -11,14 +11,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
-public class CoderEditScreen extends Screen {
+public class BreakerEditScreen extends Screen {
 	private final BlockPos pos;
 	private String script;
 	private final String status;
 	private MultiLineEditBox editor;
 
-	public CoderEditScreen(BlockPos pos, String initialScript, String status) {
-		super(Component.translatable("gui.codeworks.coder_editor"));
+	public BreakerEditScreen(BlockPos pos, String initialScript, String status) {
+		super(Component.translatable("gui.codeworks.breaker_editor"));
 		this.pos = pos;
 		this.script = initialScript == null ? "" : initialScript;
 		this.status = status == null ? "" : status;
@@ -34,9 +34,9 @@ public class CoderEditScreen extends Screen {
 		this.editor = MultiLineEditBox.builder()
 			.setX(x)
 			.setY(y)
-			.setPlaceholder(Component.translatable("gui.codeworks.coder_placeholder"))
-			.build(this.font, editorWidth, editorHeight, Component.translatable("gui.codeworks.coder_editor"));
-		this.editor.setCharacterLimit(CoderBlockEntity.MAX_SCRIPT_LENGTH);
+			.setPlaceholder(Component.translatable("gui.codeworks.breaker_placeholder"))
+			.build(this.font, editorWidth, editorHeight, Component.translatable("gui.codeworks.breaker_editor"));
+		this.editor.setCharacterLimit(BreakerBlockEntity.MAX_SCRIPT_LENGTH);
 		this.editor.setValue(this.script);
 		this.addRenderableWidget(this.editor);
 
@@ -61,12 +61,12 @@ public class CoderEditScreen extends Screen {
 
 	private void openHelp() {
 		this.script = this.editor.getValue();
-		this.minecraft.setScreenAndShow(new CoderHelpScreen(this));
+		this.minecraft.setScreenAndShow(new BreakerHelpScreen(this));
 	}
 
 	private void save() {
 		this.script = this.editor.getValue();
-		ClientPlayNetworking.send(new SaveCoderScriptPayload(this.pos, this.script));
+		ClientPlayNetworking.send(new SaveBreakerScriptPayload(this.pos, this.script));
 		this.onClose();
 	}
 

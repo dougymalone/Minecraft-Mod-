@@ -11,14 +11,14 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 
 public final class ModItems {
-	public static final Item CODER = registerBlockItem("coder", ModBlocks.CODER);
+	public static final Item BREAKER = registerBlockItem("breaker", ModBlocks.BREAKER);
 
 	private ModItems() {
 	}
 
 	public static void register() {
-		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.REDSTONE_BLOCKS).register(entries -> entries.accept(CODER));
-		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> entries.accept(CODER));
+		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.REDSTONE_BLOCKS).register(entries -> entries.accept(BREAKER));
+		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> entries.accept(BREAKER));
 	}
 
 	private static Item registerBlockItem(String name, net.minecraft.world.level.block.Block block) {

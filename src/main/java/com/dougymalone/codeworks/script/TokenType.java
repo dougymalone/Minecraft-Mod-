@@ -11,6 +11,8 @@ public enum TokenType {
 	STRING_KW,
 	IF,
 	ELSE,
+	WHILE,
+	FOR,
 	PLUS,
 	MINUS,
 	STAR,

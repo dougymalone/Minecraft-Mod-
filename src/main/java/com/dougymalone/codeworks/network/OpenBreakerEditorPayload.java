@@ -7,18 +7,18 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public record OpenCoderEditorPayload(BlockPos pos, String script, String status) implements CustomPacketPayload {
-	public static final CustomPacketPayload.Type<OpenCoderEditorPayload> TYPE =
-		new CustomPacketPayload.Type<>(Codeworks.id("open_coder_editor"));
+public record OpenBreakerEditorPayload(BlockPos pos, String script, String status) implements CustomPacketPayload {
+	public static final CustomPacketPayload.Type<OpenBreakerEditorPayload> TYPE =
+		new CustomPacketPayload.Type<>(Codeworks.id("open_breaker_editor"));
 
-	public static final StreamCodec<RegistryFriendlyByteBuf, OpenCoderEditorPayload> CODEC = StreamCodec.composite(
+	public static final StreamCodec<RegistryFriendlyByteBuf, OpenBreakerEditorPayload> CODEC = StreamCodec.composite(
 		BlockPos.STREAM_CODEC,
-		OpenCoderEditorPayload::pos,
+		OpenBreakerEditorPayload::pos,
 		ByteBufCodecs.STRING_UTF8,
-		OpenCoderEditorPayload::script,
+		OpenBreakerEditorPayload::script,
 		ByteBufCodecs.STRING_UTF8,
-		OpenCoderEditorPayload::status,
-		OpenCoderEditorPayload::new
+		OpenBreakerEditorPayload::status,
+		OpenBreakerEditorPayload::new
 	);
 
 	@Override

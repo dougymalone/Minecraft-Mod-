@@ -1,7 +1,7 @@
 package com.dougymalone.codeworks.registry;
 
 import com.dougymalone.codeworks.Codeworks;
-import com.dougymalone.codeworks.block.CoderBlock;
+import com.dougymalone.codeworks.block.BreakerBlock;
 import java.util.function.Function;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 
 public final class ModBlocks {
-	public static final Block CODER = register("coder", CoderBlock::new, BlockBehaviour.Properties.of()
+	public static final Block BREAKER = register("breaker", BreakerBlock::new, BlockBehaviour.Properties.of()
 		.mapColor(MapColor.METAL)
 		.strength(3.5F)
 		.requiresCorrectToolForDrops()

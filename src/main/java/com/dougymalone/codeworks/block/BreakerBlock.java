@@ -1,6 +1,6 @@
 package com.dougymalone.codeworks.block;
 
-import com.dougymalone.codeworks.block.entity.CoderBlockEntity;
+import com.dougymalone.codeworks.block.entity.BreakerBlockEntity;
 import com.dougymalone.codeworks.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -24,10 +24,10 @@ import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jspecify.annotations.Nullable;
 
-public class CoderBlock extends BaseEntityBlock {
+public class BreakerBlock extends BaseEntityBlock {
 	public static final EnumProperty<Direction> FACING = DirectionalBlock.FACING;
 
-	public CoderBlock(Properties properties) {
+	public BreakerBlock(Properties properties) {
 		super(properties);
 		this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
 	}
@@ -59,19 +59,19 @@ public class CoderBlock extends BaseEntityBlock {
 
 	@Override
 	public @Nullable BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-		return new CoderBlockEntity(pos, state);
+		return new BreakerBlockEntity(pos, state);
 	}
 
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-		if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer && level.getBlockEntity(pos) instanceof CoderBlockEntity coder) {
-			coder.openEditor(serverPlayer);
+		if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer && level.getBlockEntity(pos) instanceof BreakerBlockEntity breaker) {
+			breaker.openEditor(serverPlayer);
 		}
 		return InteractionResult.SUCCESS;
 	}
 
 	@Override
 	public <T extends BlockEntity> @Nullable BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-		return level.isClientSide() ? null : createTickerHelper(type, ModBlockEntities.CODER, CoderBlockEntity::serverTick);
+		return level.isClientSide() ? null : createTickerHelper(type, ModBlockEntities.BREAKER, BreakerBlockEntity::serverTick);
 	}
 }

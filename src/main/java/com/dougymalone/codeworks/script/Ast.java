@@ -1,6 +1,7 @@
 package com.dougymalone.codeworks.script;
 
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 public final class Ast {
 	private Ast() {
@@ -16,7 +17,13 @@ public final class Ast {
 		record Assign(String name, Expr value, int line) implements Stmt {
 		}
 
-		record If(Expr condition, Stmt thenBranch, Stmt elseBranch) implements Stmt {
+		record If(Expr condition, Stmt thenBranch, @Nullable Stmt elseBranch) implements Stmt {
+		}
+
+		record While(Expr condition, Stmt body, int line) implements Stmt {
+		}
+
+		record For(@Nullable Stmt init, @Nullable Expr condition, @Nullable Stmt increment, Stmt body, int line) implements Stmt {
 		}
 
 		record Expression(Expr expression) implements Stmt {

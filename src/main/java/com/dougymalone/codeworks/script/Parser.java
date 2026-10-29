@@ -21,17 +21,19 @@ public final class Parser {
 
 	private Ast.Stmt declaration() throws ScriptException {
 		if (match(TokenType.INT_KW, TokenType.BOOL_KW, TokenType.STRING_KW)) {
-			return varDecl();
+			return varDecl(true);
 		}
 		return statement();
 	}
 
-	private Ast.Stmt varDecl() throws ScriptException {
+	private Ast.Stmt varDecl(boolean requireSemicolon) throws ScriptException {
 		Token type = previous();
 		Token name = consume(TokenType.IDENT, "Expected variable name");
 		consume(TokenType.EQ, "Expected '=' after variable name");
 		Ast.Expr initializer = expression();
-		consume(TokenType.SEMI, "Expected ';' after declaration");
+		if (requireSemicolon) {
+			consume(TokenType.SEMI, "Expected ';' after declaration");
+		}
 		return new Ast.Stmt.VarDecl(type.lexeme(), name.lexeme(), initializer, name.line());
 	}
 
@@ -39,10 +41,16 @@ public final class Parser {
 		if (match(TokenType.IF)) {
 			return ifStatement();
 		}
+		if (match(TokenType.WHILE)) {
+			return whileStatement();
+		}
+		if (match(TokenType.FOR)) {
+			return forStatement();
+		}
 		if (match(TokenType.LBRACE)) {
 			return new Ast.Stmt.Block(block());
 		}
-		return expressionStatement();
+		return expressionStatement(true);
 	}
 
 	private Ast.Stmt ifStatement() throws ScriptException {
@@ -57,6 +65,44 @@ public final class Parser {
 		return new Ast.Stmt.If(condition, thenBranch, elseBranch);
 	}
 
+	private Ast.Stmt whileStatement() throws ScriptException {
+		Token keyword = previous();
+		consume(TokenType.LPAREN, "Expected '(' after while");
+		Ast.Expr condition = expression();
+		consume(TokenType.RPAREN, "Expected ')' after while condition");
+		Ast.Stmt body = statement();
+		return new Ast.Stmt.While(condition, body, keyword.line());
+	}
+
+	private Ast.Stmt forStatement() throws ScriptException {
+		Token keyword = previous();
+		consume(TokenType.LPAREN, "Expected '(' after for");
+
+		Ast.Stmt init = null;
+		if (!check(TokenType.SEMI)) {
+			if (match(TokenType.INT_KW, TokenType.BOOL_KW, TokenType.STRING_KW)) {
+				init = varDecl(false);
+			} else {
+				init = expressionStatement(false);
+			}
+		}
+		consume(TokenType.SEMI, "Expected ';' after for initializer");
+
+		Ast.Expr condition = null;
+		if (!check(TokenType.SEMI)) {
+			condition = expression();
+		}
+		consume(TokenType.SEMI, "Expected ';' after for condition");
+
+		Ast.Stmt increment = null;
+		if (!check(TokenType.RPAREN)) {
+			increment = expressionStatement(false);
+		}
+		consume(TokenType.RPAREN, "Expected ')' after for clauses");
+		Ast.Stmt body = statement();
+		return new Ast.Stmt.For(init, condition, increment, body, keyword.line());
+	}
+
 	private List<Ast.Stmt> block() throws ScriptException {
 		List<Ast.Stmt> statements = new ArrayList<>();
 		while (!check(TokenType.RBRACE) && !isAtEnd()) {
@@ -66,14 +112,18 @@ public final class Parser {
 		return statements;
 	}
 
-	private Ast.Stmt expressionStatement() throws ScriptException {
+	private Ast.Stmt expressionStatement(boolean requireSemicolon) throws ScriptException {
 		Ast.Expr expr = expression();
 		if (expr instanceof Ast.Expr.Variable variable && match(TokenType.EQ)) {
 			Ast.Expr value = expression();
-			consume(TokenType.SEMI, "Expected ';' after assignment");
+			if (requireSemicolon) {
+				consume(TokenType.SEMI, "Expected ';' after assignment");
+			}
 			return new Ast.Stmt.Assign(variable.name(), value, variable.line());
 		}
-		consume(TokenType.SEMI, "Expected ';' after expression");
+		if (requireSemicolon) {
+			consume(TokenType.SEMI, "Expected ';' after expression");
+		}
 		return new Ast.Stmt.Expression(expr);
 	}
 

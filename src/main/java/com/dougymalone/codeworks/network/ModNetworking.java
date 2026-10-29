@@ -1,6 +1,6 @@
 package com.dougymalone.codeworks.network;
 
-import com.dougymalone.codeworks.block.entity.CoderBlockEntity;
+import com.dougymalone.codeworks.block.entity.BreakerBlockEntity;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerLevel;
@@ -12,12 +12,12 @@ public final class ModNetworking {
 	}
 
 	public static void registerCommon() {
-		PayloadTypeRegistry.clientboundPlay().register(OpenCoderEditorPayload.TYPE, OpenCoderEditorPayload.CODEC);
-		PayloadTypeRegistry.serverboundPlay().register(SaveCoderScriptPayload.TYPE, SaveCoderScriptPayload.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(OpenBreakerEditorPayload.TYPE, OpenBreakerEditorPayload.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(SaveBreakerScriptPayload.TYPE, SaveBreakerScriptPayload.CODEC);
 	}
 
 	public static void registerServerReceivers() {
-		ServerPlayNetworking.registerGlobalReceiver(SaveCoderScriptPayload.TYPE, (payload, context) -> {
+		ServerPlayNetworking.registerGlobalReceiver(SaveBreakerScriptPayload.TYPE, (payload, context) -> {
 			context.server().execute(() -> {
 				if (!(context.player().level() instanceof ServerLevel level)) {
 					return;
@@ -26,8 +26,8 @@ public final class ModNetworking {
 					return;
 				}
 				BlockEntity blockEntity = level.getBlockEntity(payload.pos());
-				if (blockEntity instanceof CoderBlockEntity coder) {
-					coder.setScriptFromPlayer(payload.script());
+				if (blockEntity instanceof BreakerBlockEntity breaker) {
+					breaker.setScriptFromPlayer(payload.script());
 				}
 			});
 		});

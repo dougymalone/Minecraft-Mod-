@@ -14,6 +14,8 @@ public final class Lexer {
 		KEYWORDS.put("string", TokenType.STRING_KW);
 		KEYWORDS.put("if", TokenType.IF);
 		KEYWORDS.put("else", TokenType.ELSE);
+		KEYWORDS.put("while", TokenType.WHILE);
+		KEYWORDS.put("for", TokenType.FOR);
 		KEYWORDS.put("true", TokenType.TRUE);
 		KEYWORDS.put("false", TokenType.FALSE);
 	}
