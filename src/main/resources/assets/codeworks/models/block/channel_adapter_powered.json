@@ -1,7 +1,0 @@
-{
-  "parent": "codeworks:block/channel_adapter",
-  "textures": {
-    "panel": "codeworks:block/channel_adapter_powered",
-    "particle": "codeworks:block/channel_adapter_powered"
-  }
-}
