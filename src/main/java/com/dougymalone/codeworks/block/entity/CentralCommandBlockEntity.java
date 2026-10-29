@@ -134,6 +134,14 @@ public class CentralCommandBlockEntity extends BlockEntity implements HostApi {
 		}
 		scriptSource = script;
 		recompile(true);
+		// recompile sets status to OK / parse error — overlay channel summary when parse ok
+		if (running) {
+			if (channels.isEmpty()) {
+				status = "OK — no channels yet";
+			} else {
+				status = "OK — " + channels.size() + " channel(s): " + String.join(", ", channels);
+			}
+		}
 		ensureIndexed();
 		setChanged();
 	}
