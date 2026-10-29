@@ -4,7 +4,9 @@ import com.dougymalone.codeworks.network.ModNetworking;
 import com.dougymalone.codeworks.registry.ModBlockEntities;
 import com.dougymalone.codeworks.registry.ModBlocks;
 import com.dougymalone.codeworks.registry.ModItems;
+import com.dougymalone.codeworks.wireless.WirelessBus;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +22,7 @@ public class Codeworks implements ModInitializer {
 		ModItems.register();
 		ModNetworking.registerCommon();
 		ModNetworking.registerServerReceivers();
+		ServerLifecycleEvents.SERVER_STOPPED.register(server -> WirelessBus.clearAll());
 		LOGGER.info("Codeworks initialized");
 	}
 

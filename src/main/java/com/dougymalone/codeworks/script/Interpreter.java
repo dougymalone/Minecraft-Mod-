@@ -16,10 +16,11 @@ public final class Interpreter {
 	public static final int MAX_CALL_DEPTH = 16;
 
 	private static final Set<String> HOST_METHODS = Set.of(
-		"Harvest", "BreakFront", "Log", "Sense", "HasBlock", "Move", "Wait"
+		"Harvest", "BreakFront", "Place", "Log", "Sense", "HasBlock", "HasStoredBlock", "HasItem",
+		"Extended", "IsPistonExtended", "Move", "Wait", "Send", "Receive"
 	);
 	private static final Set<String> MATH_METHODS = Set.of("Min", "Max", "Abs", "Clamp");
-	private static final Set<String> SETTINGS = Set.of("speed", "range");
+	private static final Set<String> SETTINGS = Set.of("speed", "range", "channel");
 
 	private final Ast.Program program;
 	private final HostApi host;
@@ -480,6 +481,10 @@ public final class Interpreter {
 				requireArgCount(name, args, 0, line);
 				yield host.harvest();
 			}
+			case "Place" -> {
+				requireArgCount(name, args, 0, line);
+				yield host.place();
+			}
 			case "Log" -> {
 				requireArgCount(name, args, 1, line);
 				host.log(String.valueOf(args.getFirst()));
@@ -493,6 +498,14 @@ public final class Interpreter {
 				requireArgCount(name, args, 0, line);
 				yield host.hasBlock();
 			}
+			case "HasStoredBlock", "HasItem" -> {
+				requireArgCount(name, args, 0, line);
+				yield host.hasStoredBlock();
+			}
+			case "Extended", "IsPistonExtended" -> {
+				requireArgCount(name, args, 0, line);
+				yield host.extended();
+			}
 			case "Move" -> {
 				requireArgCount(name, args, 1, line);
 				host.move(String.valueOf(args.getFirst()));
@@ -502,6 +515,15 @@ public final class Interpreter {
 				requireArgCount(name, args, 1, line);
 				host.waitTicks(asInt(args.getFirst(), line));
 				throw new ScriptYield();
+			}
+			case "Send" -> {
+				requireArgCount(name, args, 2, line);
+				host.send(String.valueOf(args.get(0)), String.valueOf(args.get(1)));
+				yield null;
+			}
+			case "Receive" -> {
+				requireArgCount(name, args, 1, line);
+				yield host.receive(String.valueOf(args.getFirst()));
 			}
 			default -> throw new ScriptException("Unknown method '" + name + "'", line);
 		};
@@ -573,6 +595,7 @@ public final class Interpreter {
 			return switch (name) {
 				case "speed" -> host.getSpeed();
 				case "range" -> host.getRange();
+				case "channel" -> host.getChannel();
 				default -> throw new ScriptException("Unknown setting", line);
 			};
 		}
@@ -587,6 +610,7 @@ public final class Interpreter {
 			switch (name) {
 				case "speed" -> host.setSpeed(asInt(value, line));
 				case "range" -> host.setRange(asInt(value, line));
+				case "channel" -> host.setChannel(String.valueOf(value));
 				default -> throw new ScriptException("Unknown setting", line);
 			}
 			return;
