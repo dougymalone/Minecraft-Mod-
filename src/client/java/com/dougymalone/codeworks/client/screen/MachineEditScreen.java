@@ -1,7 +1,7 @@
 package com.dougymalone.codeworks.client.screen;
 
-import com.dougymalone.codeworks.block.entity.BreakerBlockEntity;
-import com.dougymalone.codeworks.network.SaveBreakerScriptPayload;
+import com.dougymalone.codeworks.block.entity.ScriptedMachineBlockEntity;
+import com.dougymalone.codeworks.network.SaveMachineScriptPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -11,17 +11,26 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
-public class BreakerEditScreen extends Screen {
+public class MachineEditScreen extends Screen {
 	private final BlockPos pos;
+	private final String machineType;
 	private String script;
 	private final String status;
 	private MultiLineEditBox editor;
 
-	public BreakerEditScreen(BlockPos pos, String initialScript, String status) {
-		super(Component.translatable("gui.codeworks.breaker_editor"));
+	public MachineEditScreen(BlockPos pos, String initialScript, String status, String machineType) {
+		super(Component.translatable("gui.codeworks." + sanitizeType(machineType) + "_editor"));
 		this.pos = pos;
+		this.machineType = sanitizeType(machineType);
 		this.script = initialScript == null ? "" : initialScript;
 		this.status = status == null ? "" : status;
+	}
+
+	private static String sanitizeType(String machineType) {
+		if ("placer".equals(machineType)) {
+			return "placer";
+		}
+		return "breaker";
 	}
 
 	@Override
@@ -34,9 +43,9 @@ public class BreakerEditScreen extends Screen {
 		this.editor = MultiLineEditBox.builder()
 			.setX(x)
 			.setY(y)
-			.setPlaceholder(Component.translatable("gui.codeworks.breaker_placeholder"))
-			.build(this.font, editorWidth, editorHeight, Component.translatable("gui.codeworks.breaker_editor"));
-		this.editor.setCharacterLimit(BreakerBlockEntity.MAX_SCRIPT_LENGTH);
+			.setPlaceholder(Component.translatable("gui.codeworks." + this.machineType + "_placeholder"))
+			.build(this.font, editorWidth, editorHeight, this.title);
+		this.editor.setCharacterLimit(ScriptedMachineBlockEntity.MAX_SCRIPT_LENGTH);
 		this.editor.setValue(this.script);
 		this.addRenderableWidget(this.editor);
 
@@ -61,12 +70,12 @@ public class BreakerEditScreen extends Screen {
 
 	private void openHelp() {
 		this.script = this.editor.getValue();
-		this.minecraft.setScreenAndShow(new BreakerHelpScreen(this));
+		this.minecraft.setScreenAndShow(new MachineHelpScreen(this));
 	}
 
 	private void save() {
 		this.script = this.editor.getValue();
-		ClientPlayNetworking.send(new SaveBreakerScriptPayload(this.pos, this.script));
+		ClientPlayNetworking.send(new SaveMachineScriptPayload(this.pos, this.script));
 		this.onClose();
 	}
 

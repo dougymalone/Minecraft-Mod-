@@ -1,7 +1,7 @@
 package com.dougymalone.codeworks.client.network;
 
-import com.dougymalone.codeworks.client.screen.BreakerEditScreen;
-import com.dougymalone.codeworks.network.OpenBreakerEditorPayload;
+import com.dougymalone.codeworks.client.screen.MachineEditScreen;
+import com.dougymalone.codeworks.network.OpenMachineEditorPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 
@@ -10,10 +10,15 @@ public final class ClientNetworking {
 	}
 
 	public static void register() {
-		ClientPlayNetworking.registerGlobalReceiver(OpenBreakerEditorPayload.TYPE, (payload, context) -> {
+		ClientPlayNetworking.registerGlobalReceiver(OpenMachineEditorPayload.TYPE, (payload, context) -> {
 			context.client().execute(() -> {
 				Minecraft minecraft = context.client();
-				minecraft.setScreenAndShow(new BreakerEditScreen(payload.pos(), payload.script(), payload.status()));
+				minecraft.setScreenAndShow(new MachineEditScreen(
+					payload.pos(),
+					payload.script(),
+					payload.status(),
+					payload.machineType()
+				));
 			});
 		});
 	}

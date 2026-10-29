@@ -10,12 +10,12 @@ import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 
-public class BreakerHelpScreen extends Screen {
+public class MachineHelpScreen extends Screen {
 	private final Screen parent;
 	private List<FormattedCharSequence> lines = List.of();
 	private int scroll;
 
-	public BreakerHelpScreen(Screen parent) {
+	public MachineHelpScreen(Screen parent) {
 		super(Component.translatable("gui.codeworks.help_title"));
 		this.parent = parent;
 	}

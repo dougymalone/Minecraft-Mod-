@@ -12,13 +12,20 @@ import net.minecraft.world.item.Item;
 
 public final class ModItems {
 	public static final Item BREAKER = registerBlockItem("breaker", ModBlocks.BREAKER);
+	public static final Item PLACER = registerBlockItem("placer", ModBlocks.PLACER);
 
 	private ModItems() {
 	}
 
 	public static void register() {
-		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.REDSTONE_BLOCKS).register(entries -> entries.accept(BREAKER));
-		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> entries.accept(BREAKER));
+		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.REDSTONE_BLOCKS).register(entries -> {
+			entries.accept(BREAKER);
+			entries.accept(PLACER);
+		});
+		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
+			entries.accept(BREAKER);
+			entries.accept(PLACER);
+		});
 	}
 
 	private static Item registerBlockItem(String name, net.minecraft.world.level.block.Block block) {

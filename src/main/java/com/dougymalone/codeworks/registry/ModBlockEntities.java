@@ -2,6 +2,7 @@ package com.dougymalone.codeworks.registry;
 
 import com.dougymalone.codeworks.Codeworks;
 import com.dougymalone.codeworks.block.entity.BreakerBlockEntity;
+import com.dougymalone.codeworks.block.entity.PlacerBlockEntity;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -12,6 +13,12 @@ public final class ModBlockEntities {
 		BuiltInRegistries.BLOCK_ENTITY_TYPE,
 		Codeworks.id("breaker"),
 		FabricBlockEntityTypeBuilder.create(BreakerBlockEntity::new, ModBlocks.BREAKER).build()
+	);
+
+	public static final BlockEntityType<PlacerBlockEntity> PLACER = Registry.register(
+		BuiltInRegistries.BLOCK_ENTITY_TYPE,
+		Codeworks.id("placer"),
+		FabricBlockEntityTypeBuilder.create(PlacerBlockEntity::new, ModBlocks.PLACER).build()
 	);
 
 	private ModBlockEntities() {

@@ -3,7 +3,7 @@ package com.dougymalone.codeworks.script;
 import java.util.List;
 
 /**
- * Player-facing docs for the Breaker Help UI.
+ * Player-facing docs for the machine Help UI.
  * Keep in sync with {@link Interpreter}, {@link Parser}, and {@link HostApi}.
  */
 public final class ScriptHelp {
@@ -17,14 +17,20 @@ public final class ScriptHelp {
 		new ApiEntry(
 			"bool Harvest()",
 			"bool",
-			"Break the nearest breakable non-air block within range in front of the Breaker. Honors speed cooldown; returns true if a block was broken.",
+			"Breaker only: break the nearest breakable non-air block within range in front. Honors speed cooldown. Returns false on Placer.",
 			"if (HasBlock()) { Harvest(); }"
 		),
 		new ApiEntry(
 			"bool BreakFront()",
 			"bool",
-			"Alias of Harvest(). Same behavior and return value.",
+			"Alias of Harvest().",
 			"BreakFront();"
+		),
+		new ApiEntry(
+			"bool Place()",
+			"bool",
+			"Placer only: place the stored block item into the air block directly in front. Needs a stored block and replaceable front. Honors speed cooldown. Returns false on Breaker.",
+			"if (HasStoredBlock() && Sense() == \"air\") { Place(); }"
 		),
 		new ApiEntry(
 			"void Log(string message)",
@@ -35,26 +41,62 @@ public final class ScriptHelp {
 		new ApiEntry(
 			"string Sense()",
 			"string",
-			"Registry id of the block in front within range, or \"air\" if none.",
+			"Registry id of the first non-air block in front within range, or \"air\".",
 			"if (Sense() == \"minecraft:oak_log\") { Harvest(); }"
 		),
 		new ApiEntry(
 			"bool HasBlock()",
 			"bool",
-			"True if a breakable non-air block is within range in front.",
+			"True if a breakable non-air block is within range in front (facing block).",
 			"while (HasBlock()) { Harvest(); Wait(5); }"
+		),
+		new ApiEntry(
+			"bool HasStoredBlock()",
+			"bool",
+			"Placer only: true if the 1-slot inventory holds a placeable block item. Alias: HasItem(). Always false on Breaker.",
+			"if (HasStoredBlock()) { Place(); }"
+		),
+		new ApiEntry(
+			"bool HasItem()",
+			"bool",
+			"Alias of HasStoredBlock().",
+			"if (HasItem()) { Place(); }"
+		),
+		new ApiEntry(
+			"bool Extended()",
+			"bool",
+			"True if a vanilla piston / sticky piston in front within range is extended, or a piston head is in front.",
+			"if (Extended()) { Wait(20); }"
+		),
+		new ApiEntry(
+			"bool IsPistonExtended()",
+			"bool",
+			"Alias of Extended().",
+			"if (IsPistonExtended()) { Log(\"out\"); }"
 		),
 		new ApiEntry(
 			"void Move(string dir)",
 			"void",
-			"Turn the Breaker. dir: left, right, back, north, south, east, west, up, down.",
+			"Turn the machine. dir: left, right, back, north, south, east, west, up, down.",
 			"Move(\"left\");"
 		),
 		new ApiEntry(
 			"void Wait(int ticks)",
 			"void",
-			"Pause the script across game ticks (cooperative; safe). Prefer as a statement; avoid inside value-returning function calls.",
+			"Pause the script across game ticks (cooperative; safe). Prefer as a statement.",
 			"Harvest(); Wait(40);"
+		),
+		new ApiEntry(
+			"void Send(string key, string value)",
+			"void",
+			"Publish a string on this machine's wireless channel. Same dimension only; global within that dimension while the server runs (not saved to disk).",
+			"Send(\"ready\", \"1\");"
+		),
+		new ApiEntry(
+			"string Receive(string key)",
+			"string",
+			"Last value published for key on this machine's channel in this dimension, or \"\". Values persist until overwritten (Send key to \"\" to clear).",
+			"if (Receive(\"ready\") == \"1\") { Place(); }"
 		)
 	);
 
@@ -74,14 +116,20 @@ public final class ScriptHelp {
 		new SettingEntry(
 			"speed",
 			"int 1–20",
-			"Break rate. Cooldown ticks ≈ 21 − speed (minimum 1). Read/write like a variable; persisted on the machine.",
+			"Action rate for Harvest/Place. Cooldown ticks ≈ 21 − speed (minimum 1). Persisted.",
 			"speed = 15;"
 		),
 		new SettingEntry(
 			"range",
 			"int 1–3",
-			"How many blocks ahead Harvest / Sense / HasBlock reach. Read/write like a variable; persisted on the machine.",
+			"How many blocks ahead Sense / HasBlock / Extended / Harvest reach. Place always uses the adjacent front cell. Persisted.",
 			"range = 2;"
+		),
+		new SettingEntry(
+			"channel",
+			"string",
+			"Wireless network id (a-z, 0-9, _ - . /). Machines sharing a channel can Send/Receive. Same dimension only. Persisted on the machine.",
+			"channel = \"line1\";"
 		)
 	);
 
@@ -95,9 +143,11 @@ public final class ScriptHelp {
 		"Compound ops: += -= *= /= and ++ -- (prefix and postfix).",
 		"Arrays: int[] a = new int[3]; a[0] = 1; int n = a.Length;",
 		"Strings: s.Length, s.Contains(\"x\"), s.Equals(\"y\"), s.EqualsIgnoreCase(\"Y\").",
-		"Functions: void Dig() { Harvest(); }  int Add(int a, int b) { return a + b; }  then Dig(); or int x = Add(1, 2);",
-		"Math builtins: Min, Max, Abs, Clamp (pure — no harvest side effects).",
-		"Settings speed and range act like variables and are persisted on the machine.",
+		"Functions: void Dig() { Harvest(); }  int Add(int a, int b) { return a + b; }",
+		"Math builtins: Min, Max, Abs, Clamp (pure — no world side effects).",
+		"Settings speed, range, and channel act like variables and are persisted on the machine.",
+		"Wireless: Send/Receive share values among machines on the same channel in the same dimension (in-memory for the server session).",
+		"Machines: Breaker breaks; Placer stores one block (right-click to insert, shift-click to extract) and Place()s it.",
 		"Sandbox: opcode + API budgets each tick; loops capped at "
 			+ Interpreter.MAX_LOOP_ITERATIONS
 			+ " iters/tick; call depth max "

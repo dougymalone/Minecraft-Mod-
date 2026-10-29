@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/orientable_vertical",
+  "textures": {
+    "front": "codeworks:block/placer_front",
+    "side": "codeworks:block/placer_side"
+  }
+}
