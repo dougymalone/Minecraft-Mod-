@@ -19,7 +19,7 @@ public final class Interpreter {
 		"Harvest", "BreakFront", "Log", "Sense", "HasBlock", "Move", "Wait"
 	);
 	private static final Set<String> MATH_METHODS = Set.of("Min", "Max", "Abs", "Clamp");
-	private static final Set<String> SETTINGS = Set.of("speed", "range", "autoPickup");
+	private static final Set<String> SETTINGS = Set.of("speed", "range");
 
 	private final Ast.Program program;
 	private final HostApi host;
@@ -573,7 +573,6 @@ public final class Interpreter {
 			return switch (name) {
 				case "speed" -> host.getSpeed();
 				case "range" -> host.getRange();
-				case "autoPickup" -> host.getAutoPickup();
 				default -> throw new ScriptException("Unknown setting", line);
 			};
 		}
@@ -588,7 +587,6 @@ public final class Interpreter {
 			switch (name) {
 				case "speed" -> host.setSpeed(asInt(value, line));
 				case "range" -> host.setRange(asInt(value, line));
-				case "autoPickup" -> host.setAutoPickup(isTruthy(value));
 				default -> throw new ScriptException("Unknown setting", line);
 			}
 			return;

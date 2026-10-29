@@ -8,7 +8,7 @@ Fabric mod for Minecraft **26.3**: Create-inspired programmable machines driven 
 - In-game script editor + **Help** (API, settings, language notes)
 - C#-like dialect: `if` / `else` / `while` / `for`, types `int`/`bool`/`string`
 - Host API: `Harvest`/`BreakFront`, `Log`, `Sense`, `HasBlock`, `Move`, `Wait`
-- Settings (persisted): `speed` (1–20), `range` (1–3), `autoPickup`
+- Settings (persisted): `speed` (1–20), `range` (1–3)
 
 ## Requirements
 
@@ -29,7 +29,7 @@ Fabric mod for Minecraft **26.3**: Create-inspired programmable machines driven 
 
 1. Creative: **Breaker** from Redstone or Functional tabs  
    Survival: craft iron + copper + redstone (`I C I / C R C / I C I`)
-2. Place so the front faces breakable blocks; optional chest behind for `autoPickup`
+2. Place so the front faces breakable blocks
 3. Right-click → edit script / open **Help** → Save
 
 ## License

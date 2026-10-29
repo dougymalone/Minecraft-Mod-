@@ -73,8 +73,9 @@ public class BreakerEditScreen extends Screen {
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
-		graphics.centeredText(this.font, this.title, this.width / 2, 15, 0xFFFFFF);
-		graphics.centeredText(this.font, Component.literal(this.status), this.width / 2, this.height - 28, 0xA0A0A0);
+		// MC 26.3 skips text when ARGB.alpha(color)==0 — use opaque ARGB, not RGB-only.
+		graphics.centeredText(this.font, this.title, this.width / 2, 15, 0xFFFFFFFF);
+		graphics.centeredText(this.font, Component.literal(this.status), this.width / 2, this.height - 28, 0xFFA0A0A0);
 	}
 
 	@Override

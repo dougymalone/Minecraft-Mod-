@@ -21,8 +21,4 @@ public interface HostApi {
 	int getRange();
 
 	void setRange(int range) throws ScriptException;
-
-	boolean getAutoPickup();
-
-	void setAutoPickup(boolean autoPickup) throws ScriptException;
 }

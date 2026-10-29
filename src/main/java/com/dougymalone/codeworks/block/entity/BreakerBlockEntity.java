@@ -16,16 +16,12 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.world.Container;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.minecraft.world.phys.AABB;
 import org.jspecify.annotations.Nullable;
 
 public class BreakerBlockEntity extends BlockEntity implements HostApi {
@@ -33,7 +29,6 @@ public class BreakerBlockEntity extends BlockEntity implements HostApi {
 		// Codeworks Breaker
 		speed = 10;
 		range = 1;
-		autoPickup = true;
 		if (HasBlock()) {
 		  Harvest();
 		}
@@ -52,7 +47,6 @@ public class BreakerBlockEntity extends BlockEntity implements HostApi {
 	private int waitTicks;
 	private int speed = 10;
 	private int range = 1;
-	private boolean autoPickup = false;
 	private Ast.@Nullable Program compiled;
 	private @Nullable Interpreter activeInterpreter;
 
@@ -176,28 +170,10 @@ public class BreakerBlockEntity extends BlockEntity implements HostApi {
 		boolean destroyed = serverLevel.destroyBlock(targetPos, true, null);
 		if (destroyed) {
 			harvestCooldown = harvestCooldownForSpeed();
-			if (autoPickup) {
-				tryPickupDrops(serverLevel, targetPos);
-			}
 			status = "Harvested";
 			setChanged();
 		}
 		return destroyed;
-	}
-
-	private void tryPickupDrops(ServerLevel serverLevel, BlockPos breakPos) {
-		Direction behind = getBlockState().getValue(BreakerBlock.FACING).getOpposite();
-		BlockEntity behindEntity = serverLevel.getBlockEntity(worldPosition.relative(behind));
-		if (!(behindEntity instanceof Container container)) {
-			return;
-		}
-		AABB box = new AABB(breakPos).inflate(0.75);
-		for (ItemEntity itemEntity : serverLevel.getEntitiesOfClass(ItemEntity.class, box)) {
-			if (!itemEntity.isAlive() || itemEntity.getItem().isEmpty()) {
-				continue;
-			}
-			HopperBlockEntity.addItem(container, itemEntity);
-		}
 	}
 
 	@Override
@@ -290,17 +266,6 @@ public class BreakerBlockEntity extends BlockEntity implements HostApi {
 		setChanged();
 	}
 
-	@Override
-	public boolean getAutoPickup() {
-		return autoPickup;
-	}
-
-	@Override
-	public void setAutoPickup(boolean autoPickup) {
-		this.autoPickup = autoPickup;
-		setChanged();
-	}
-
 	public String getScriptSource() {
 		return scriptSource;
 	}
@@ -319,7 +284,6 @@ public class BreakerBlockEntity extends BlockEntity implements HostApi {
 		waitTicks = input.getIntOr("WaitTicks", 0);
 		speed = Math.clamp(input.getIntOr("Speed", 10), MIN_SPEED, MAX_SPEED);
 		range = Math.clamp(input.getIntOr("Range", 1), MIN_RANGE, MAX_RANGE);
-		autoPickup = input.getBooleanOr("AutoPickup", false);
 		recompile(true);
 	}
 
@@ -333,6 +297,5 @@ public class BreakerBlockEntity extends BlockEntity implements HostApi {
 		output.putInt("WaitTicks", waitTicks);
 		output.putInt("Speed", speed);
 		output.putInt("Range", range);
-		output.putBoolean("AutoPickup", autoPickup);
 	}
 }

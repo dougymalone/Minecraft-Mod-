@@ -42,6 +42,15 @@ public class BreakerHelpScreen extends Screen {
 		);
 	}
 
+	/** MC 26.3 GuiGraphicsExtractor skips text when ARGB.alpha(color)==0; RGB-only 0xRRGGBB is invisible. */
+	private static final int TEXT_WHITE = 0xFFFFFFFF;
+	private static final int COLOR_SIG = 0xFF55FF55;
+	private static final int COLOR_BUILTIN = 0xFF66FFCC;
+	private static final int COLOR_SETTING = 0xFFFFCC66;
+	private static final int COLOR_DESC = 0xFFC0C0C0;
+	private static final int COLOR_EXAMPLE = 0xFF88CCFF;
+	private static final int COLOR_NOTE = 0xFFE0E0E0;
+
 	private List<FormattedCharSequence> buildLines() {
 		List<FormattedCharSequence> out = new ArrayList<>();
 		int maxWidth = Math.min(340, this.width - 40);
@@ -50,10 +59,10 @@ public class BreakerHelpScreen extends Screen {
 		out.add(FormattedCharSequence.EMPTY);
 		for (ScriptHelp.ApiEntry entry : ScriptHelp.HOST_API) {
 			Component sig = Component.literal(entry.signature() + "  →  " + entry.returns())
-				.withStyle(style -> style.withColor(0x55FF55));
+				.withStyle(style -> style.withColor(COLOR_SIG));
 			out.addAll(this.font.split(sig, maxWidth));
-			out.addAll(this.font.split(Component.literal("  " + entry.description()).withStyle(style -> style.withColor(0xC0C0C0)), maxWidth));
-			out.addAll(this.font.split(Component.literal("  ex: " + entry.example()).withStyle(style -> style.withColor(0x88CCFF)), maxWidth));
+			out.addAll(this.font.split(Component.literal("  " + entry.description()).withStyle(style -> style.withColor(COLOR_DESC)), maxWidth));
+			out.addAll(this.font.split(Component.literal("  ex: " + entry.example()).withStyle(style -> style.withColor(COLOR_EXAMPLE)), maxWidth));
 			out.add(FormattedCharSequence.EMPTY);
 		}
 
@@ -61,10 +70,10 @@ public class BreakerHelpScreen extends Screen {
 		out.add(FormattedCharSequence.EMPTY);
 		for (ScriptHelp.ApiEntry entry : ScriptHelp.BUILTINS) {
 			Component sig = Component.literal(entry.signature() + "  →  " + entry.returns())
-				.withStyle(style -> style.withColor(0x66FFCC));
+				.withStyle(style -> style.withColor(COLOR_BUILTIN));
 			out.addAll(this.font.split(sig, maxWidth));
-			out.addAll(this.font.split(Component.literal("  " + entry.description()).withStyle(style -> style.withColor(0xC0C0C0)), maxWidth));
-			out.addAll(this.font.split(Component.literal("  ex: " + entry.example()).withStyle(style -> style.withColor(0x88CCFF)), maxWidth));
+			out.addAll(this.font.split(Component.literal("  " + entry.description()).withStyle(style -> style.withColor(COLOR_DESC)), maxWidth));
+			out.addAll(this.font.split(Component.literal("  ex: " + entry.example()).withStyle(style -> style.withColor(COLOR_EXAMPLE)), maxWidth));
 			out.add(FormattedCharSequence.EMPTY);
 		}
 
@@ -72,17 +81,17 @@ public class BreakerHelpScreen extends Screen {
 		out.add(FormattedCharSequence.EMPTY);
 		for (ScriptHelp.SettingEntry setting : ScriptHelp.SETTINGS) {
 			Component name = Component.literal(setting.name() + "  (" + setting.type() + ")")
-				.withStyle(style -> style.withColor(0xFFCC66));
+				.withStyle(style -> style.withColor(COLOR_SETTING));
 			out.addAll(this.font.split(name, maxWidth));
-			out.addAll(this.font.split(Component.literal("  " + setting.description()).withStyle(style -> style.withColor(0xC0C0C0)), maxWidth));
-			out.addAll(this.font.split(Component.literal("  ex: " + setting.example()).withStyle(style -> style.withColor(0x88CCFF)), maxWidth));
+			out.addAll(this.font.split(Component.literal("  " + setting.description()).withStyle(style -> style.withColor(COLOR_DESC)), maxWidth));
+			out.addAll(this.font.split(Component.literal("  ex: " + setting.example()).withStyle(style -> style.withColor(COLOR_EXAMPLE)), maxWidth));
 			out.add(FormattedCharSequence.EMPTY);
 		}
 
 		out.addAll(this.font.split(Component.translatable("gui.codeworks.help_lang_header"), maxWidth));
 		out.add(FormattedCharSequence.EMPTY);
 		for (String note : ScriptHelp.LANGUAGE_NOTES) {
-			out.addAll(this.font.split(Component.literal("• " + note).withStyle(style -> style.withColor(0xE0E0E0)), maxWidth));
+			out.addAll(this.font.split(Component.literal("• " + note).withStyle(style -> style.withColor(COLOR_NOTE)), maxWidth));
 		}
 		return out;
 	}
@@ -105,7 +114,7 @@ public class BreakerHelpScreen extends Screen {
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		super.extractRenderState(graphics, mouseX, mouseY, a);
-		graphics.centeredText(this.font, this.title, this.width / 2, 10, 0xFFFFFF);
+		graphics.centeredText(this.font, this.title, this.width / 2, 10, TEXT_WHITE);
 
 		int panelWidth = Math.min(360, this.width - 30);
 		int panelX = (this.width - panelWidth) / 2;
@@ -125,7 +134,7 @@ public class BreakerHelpScreen extends Screen {
 			if (y + lineHeight > panelBottom - 2) {
 				break;
 			}
-			graphics.text(this.font, this.lines.get(i), panelX, y, 0xFFFFFF);
+			graphics.text(this.font, this.lines.get(i), panelX, y, TEXT_WHITE);
 			y += lineHeight;
 		}
 	}
