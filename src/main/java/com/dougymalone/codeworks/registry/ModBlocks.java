@@ -2,6 +2,7 @@ package com.dougymalone.codeworks.registry;
 
 import com.dougymalone.codeworks.Codeworks;
 import com.dougymalone.codeworks.block.BreakerBlock;
+import com.dougymalone.codeworks.block.ChannelAdapterBlock;
 import com.dougymalone.codeworks.block.PlacerBlock;
 import java.util.function.Function;
 import net.minecraft.core.Registry;
@@ -12,6 +13,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
 
 public final class ModBlocks {
 	public static final Block BREAKER = register("breaker", BreakerBlock::new, BlockBehaviour.Properties.of()
@@ -25,6 +27,13 @@ public final class ModBlocks {
 		.strength(3.5F)
 		.requiresCorrectToolForDrops()
 		.sound(SoundType.METAL));
+
+	public static final Block CHANNEL_ADAPTER = register("channel_adapter", ChannelAdapterBlock::new, BlockBehaviour.Properties.of()
+		.mapColor(MapColor.GOLD)
+		.strength(1.0F)
+		.noCollision()
+		.sound(SoundType.METAL)
+		.pushReaction(PushReaction.POPPED));
 
 	private ModBlocks() {
 	}

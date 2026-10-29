@@ -89,14 +89,44 @@ public final class ScriptHelp {
 		new ApiEntry(
 			"void Send(string key, string value)",
 			"void",
-			"Publish a string on this machine's wireless channel. Same dimension only; global within that dimension while the server runs (not saved to disk).",
+			"Publish a string on this machine's wireless channel. Same bus as Channel Adapters, Breakers, Placers, and any future machines. Same dimension; in-memory for the server session.",
 			"Send(\"ready\", \"1\");"
 		),
 		new ApiEntry(
 			"string Receive(string key)",
 			"string",
-			"Last value published for key on this machine's channel in this dimension, or \"\". Values persist until overwritten (Send key to \"\" to clear).",
-			"if (Receive(\"ready\") == \"1\") { Place(); }"
+			"Last value on this machine's channel (including adapter keys extended/power/host/powered), or \"\".",
+			"if (Receive(\"extended\") == \"1\") { Log(\"adapter says out\"); }"
+		),
+		new ApiEntry(
+			"void Pulse(string channel)",
+			"void",
+			"Briefly power every Channel Adapter on that channel (any scripted machine can call this — Breaker, Placer, future blocks). Triggers attached pistons/redstone.",
+			"Pulse(\"gate\");"
+		),
+		new ApiEntry(
+			"void SetPower(string channel, bool on)",
+			"void",
+			"Hold (true) or release (false) redstone emit on all Channel Adapters on that channel. Shared bus — usable from every scripted machine.",
+			"SetPower(\"gate\", true); Wait(40); SetPower(\"gate\", false);"
+		),
+		new ApiEntry(
+			"bool GetExtended(string channel)",
+			"bool",
+			"Read piston-extended state published by Channel Adapters on that channel (bus key \"extended\").",
+			"if (GetExtended(\"gate\")) { Log(\"piston out\"); }"
+		),
+		new ApiEntry(
+			"int GetPower(string channel)",
+			"int",
+			"Read 0–15 redstone level published by Channel Adapters on that channel (bus key \"power\").",
+			"int p = GetPower(\"gate\");"
+		),
+		new ApiEntry(
+			"string GetHost(string channel)",
+			"string",
+			"Registry id of the block a Channel Adapter is attached to on that channel, or \"\".",
+			"Log(GetHost(\"gate\"));"
 		)
 	);
 
@@ -128,7 +158,7 @@ public final class ScriptHelp {
 		new SettingEntry(
 			"channel",
 			"string",
-			"Wireless network id (a-z, 0-9, _ - . /). Machines sharing a channel can Send/Receive. Same dimension only. Persisted on the machine.",
+			"Wireless network id. Breakers, Placers, Channel Adapters, and future machines on the same id share one bus. Same dimension only. Persisted.",
 			"channel = \"line1\";"
 		)
 	);
@@ -146,8 +176,14 @@ public final class ScriptHelp {
 		"Functions: void Dig() { Harvest(); }  int Add(int a, int b) { return a + b; }",
 		"Math builtins: Min, Max, Abs, Clamp (pure — no world side effects).",
 		"Settings speed, range, and channel act like variables and are persisted on the machine.",
-		"Wireless: Send/Receive share values among machines on the same channel in the same dimension (in-memory for the server session).",
-		"Machines: Breaker breaks; Placer stores one block (right-click to insert, shift-click to extract) and Place()s it.",
+		"SHARED WIRELESS BUS: Breaker, Placer, Channel Adapter, and any future scripted machine all use the same Send/Receive/Pulse bus. Set matching channel ids.",
+		"Channel Adapter: place on the back/face of a piston or redstone device; open GUI to set channel. Publishes extended/power/host; Pulse/SetPower emit redstone into the host.",
+		"Example — Placer waits for adapter piston, then places: channel=\"gate\"; if (GetExtended(\"gate\")) { Wait(5); } else { Pulse(\"gate\"); Wait(10); } if (HasStoredBlock()) { Place(); }",
+		"Example — Breaker harvests then pulses a gate adapter: channel=\"line1\"; if (Harvest()) { Pulse(\"gate\"); }",
+		"Adapter bus keys: extended, power, host, powered (avoid custom keys starting with __).",
+		"Multiple adapters on different channels never collide; same channel shares state/commands.",
+		"Wireless scope: same dimension, global within that dimension, in-memory for the server session (not disk-persisted).",
+		"Machines: Breaker breaks; Placer stores one block; Channel Adapter bridges redstone ↔ scripts.",
 		"Sandbox: opcode + API budgets each tick; loops capped at "
 			+ Interpreter.MAX_LOOP_ITERATIONS
 			+ " iters/tick; call depth max "

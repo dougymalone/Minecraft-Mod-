@@ -30,6 +30,24 @@ public interface HostApi {
 	/** Read the last published value for key on this machine's channel, or "". */
 	String receive(String key) throws ScriptException;
 
+	/**
+	 * Briefly power every Channel Adapter on {@code channel} (shared bus — works from
+	 * Breaker, Placer, and any future scripted machine).
+	 */
+	void pulse(String channel) throws ScriptException;
+
+	/** Hold or release redstone emit on all Channel Adapters on {@code channel}. */
+	void setPower(String channel, boolean on) throws ScriptException;
+
+	/** Read adapter-published piston extended state for {@code channel} ("1" on the bus). */
+	boolean getExtended(String channel) throws ScriptException;
+
+	/** Read adapter-published redstone level 0–15 for {@code channel}. */
+	int getPower(String channel) throws ScriptException;
+
+	/** Read adapter-published host block id for {@code channel}, or "". */
+	String getHost(String channel) throws ScriptException;
+
 	int getSpeed();
 
 	void setSpeed(int speed) throws ScriptException;

@@ -17,7 +17,8 @@ public final class Interpreter {
 
 	private static final Set<String> HOST_METHODS = Set.of(
 		"Harvest", "BreakFront", "Place", "Log", "Sense", "HasBlock", "HasStoredBlock", "HasItem",
-		"Extended", "IsPistonExtended", "Move", "Wait", "Send", "Receive"
+		"Extended", "IsPistonExtended", "Move", "Wait", "Send", "Receive",
+		"Pulse", "SetPower", "GetExtended", "GetPower", "GetHost"
 	);
 	private static final Set<String> MATH_METHODS = Set.of("Min", "Max", "Abs", "Clamp");
 	private static final Set<String> SETTINGS = Set.of("speed", "range", "channel");
@@ -524,6 +525,28 @@ public final class Interpreter {
 			case "Receive" -> {
 				requireArgCount(name, args, 1, line);
 				yield host.receive(String.valueOf(args.getFirst()));
+			}
+			case "Pulse" -> {
+				requireArgCount(name, args, 1, line);
+				host.pulse(String.valueOf(args.getFirst()));
+				yield null;
+			}
+			case "SetPower" -> {
+				requireArgCount(name, args, 2, line);
+				host.setPower(String.valueOf(args.get(0)), isTruthy(args.get(1)));
+				yield null;
+			}
+			case "GetExtended" -> {
+				requireArgCount(name, args, 1, line);
+				yield host.getExtended(String.valueOf(args.getFirst()));
+			}
+			case "GetPower" -> {
+				requireArgCount(name, args, 1, line);
+				yield host.getPower(String.valueOf(args.getFirst()));
+			}
+			case "GetHost" -> {
+				requireArgCount(name, args, 1, line);
+				yield host.getHost(String.valueOf(args.getFirst()));
 			}
 			default -> throw new ScriptException("Unknown method '" + name + "'", line);
 		};

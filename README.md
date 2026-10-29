@@ -6,11 +6,12 @@ Fabric mod for Minecraft **26.3**: Create-inspired programmable machines driven 
 
 - **Breaker** — breaks blocks in front
 - **Placer** — stores **one** block item and places it in front (`Place()`)
+- **Channel Adapter** — thin panel on a piston/redstone device; shared wireless channel for state + activation
 - In-game script editor + **Help** (API, settings, language notes)
 - C#-like dialect: `if` / `else` / `while` / `for`, types `int`/`bool`/`string`, functions, arrays
-- Host API: `Harvest`/`BreakFront`, `Place`, `Log`, `Sense`, `HasBlock`, `HasStoredBlock`/`HasItem`, `Extended`/`IsPistonExtended`, `Move`, `Wait`, `Send`/`Receive`
+- Host API: harvest/place/sense, wireless `Send`/`Receive`, adapter helpers `Pulse` / `SetPower` / `GetExtended` / `GetPower` / `GetHost`
 - Settings (persisted): `speed` (1–20), `range` (1–3), `channel` (wireless network id)
-- Wireless: same-dimension, global-per-dimension signal bus (in-memory for the server session)
+- **Shared wireless bus** — Breaker, Placer, Channel Adapter, and any future scripted machines all talk on the same channels (same dimension, in-memory for the server session)
 
 > Create belts/funnels into the Placer are planned next — Codeworks stays standalone Fabric for now.
 
@@ -31,11 +32,11 @@ Fabric mod for Minecraft **26.3**: Create-inspired programmable machines driven 
 
 ## Try it in-game
 
-1. Creative: **Breaker** / **Placer** from Redstone or Functional tabs  
-   Survival: craft Breaker (`I C I / C R C / I C I`) or Placer (`I C I / C D C / I R I` with dispenser)
-2. Face machines at the blocks you care about; set the same `channel = "line1"` to link them
-3. Placer: right-click with a block item to insert; shift-click empty-handed to extract
-4. Right-click → edit script / open **Help** → Save
+1. Creative: **Breaker** / **Placer** / **Channel Adapter** from Redstone or Functional tabs  
+2. Place a Channel Adapter on the **back** of a piston; right-click to set `channel` (e.g. `gate`)
+3. On a Breaker or Placer script: `Pulse("gate")` to extend, `GetExtended("gate")` to read state — same bus works from every machine
+4. Placer: right-click with a block item to insert; shift-click empty-handed to extract
+5. Right-click machines → edit script / open **Help** → Save
 
 ## License
 
