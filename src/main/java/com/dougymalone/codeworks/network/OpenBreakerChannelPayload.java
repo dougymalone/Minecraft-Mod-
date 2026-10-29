@@ -7,7 +7,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public record OpenBreakerChannelPayload(BlockPos pos, String channel) implements CustomPacketPayload {
+public record OpenBreakerChannelPayload(BlockPos pos, String channel, String availableChannelsCsv) implements CustomPacketPayload {
 	public static final CustomPacketPayload.Type<OpenBreakerChannelPayload> TYPE =
 		new CustomPacketPayload.Type<>(Codeworks.id("open_breaker_channel"));
 
@@ -16,6 +16,8 @@ public record OpenBreakerChannelPayload(BlockPos pos, String channel) implements
 		OpenBreakerChannelPayload::pos,
 		ByteBufCodecs.STRING_UTF8,
 		OpenBreakerChannelPayload::channel,
+		ByteBufCodecs.STRING_UTF8,
+		OpenBreakerChannelPayload::availableChannelsCsv,
 		OpenBreakerChannelPayload::new
 	);
 

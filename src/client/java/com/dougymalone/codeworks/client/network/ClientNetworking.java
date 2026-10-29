@@ -27,7 +27,11 @@ public final class ClientNetworking {
 		ClientPlayNetworking.registerGlobalReceiver(OpenBreakerChannelPayload.TYPE, (payload, context) -> {
 			context.client().execute(() -> {
 				Minecraft minecraft = context.client();
-				minecraft.setScreenAndShow(new BreakerChannelScreen(payload.pos(), payload.channel()));
+				minecraft.setScreenAndShow(new BreakerChannelScreen(
+					payload.pos(),
+					payload.channel(),
+					payload.availableChannelsCsv()
+				));
 			});
 		});
 	}

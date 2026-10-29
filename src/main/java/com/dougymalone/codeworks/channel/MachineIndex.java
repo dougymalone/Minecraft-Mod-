@@ -1,19 +1,24 @@
 package com.dougymalone.codeworks.channel;
 
 import com.dougymalone.codeworks.block.entity.BreakerBlockEntity;
+import com.dougymalone.codeworks.block.entity.CentralCommandBlockEntity;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 
 /**
- * Tracks loaded actuator machines by dimension + channel for Central Command fan-out.
+ * Tracks loaded actuator machines and Central Commands by dimension for fan-out / discovery.
  */
 public final class MachineIndex {
 	private static final Map<ResourceKey<Level>, Map<String, Map<BlockPos, BreakerBlockEntity>>> BREAKERS =
+		new ConcurrentHashMap<>();
+	private static final Map<ResourceKey<Level>, Map<BlockPos, CentralCommandBlockEntity>> COMMANDS =
 		new ConcurrentHashMap<>();
 
 	private MachineIndex() {
@@ -49,6 +54,25 @@ public final class MachineIndex {
 	public static void reindexBreaker(BreakerBlockEntity breaker) {
 		unregisterBreaker(breaker);
 		registerBreaker(breaker);
+	}
+
+	public static void registerCommand(CentralCommandBlockEntity command) {
+		if (command.getLevel() == null || command.getLevel().isClientSide()) {
+			return;
+		}
+		COMMANDS
+			.computeIfAbsent(command.getLevel().dimension(), ignored -> new ConcurrentHashMap<>())
+			.put(command.getBlockPos().immutable(), command);
+	}
+
+	public static void unregisterCommand(CentralCommandBlockEntity command) {
+		if (command.getLevel() == null) {
+			return;
+		}
+		Map<BlockPos, CentralCommandBlockEntity> map = COMMANDS.get(command.getLevel().dimension());
+		if (map != null) {
+			map.remove(command.getBlockPos());
+		}
 	}
 
 	public static int breakerCount(Level level, String channel) {
@@ -90,7 +114,32 @@ public final class MachineIndex {
 		return out;
 	}
 
+	/** Union of channel ids registered on every loaded Central Command in this dimension (stable order). */
+	public static List<String> knownChannels(Level level) {
+		List<String> out = new ArrayList<>();
+		if (level.isClientSide()) {
+			return out;
+		}
+		Map<BlockPos, CentralCommandBlockEntity> map = COMMANDS.get(level.dimension());
+		if (map == null) {
+			return out;
+		}
+		Set<String> seen = new LinkedHashSet<>();
+		for (CentralCommandBlockEntity command : List.copyOf(map.values())) {
+			if (command.isRemoved() || command.getLevel() != level) {
+				map.remove(command.getBlockPos());
+				continue;
+			}
+			for (String channel : command.getChannels()) {
+				seen.add(channel);
+			}
+		}
+		out.addAll(seen);
+		return out;
+	}
+
 	public static void clearAll() {
 		BREAKERS.clear();
+		COMMANDS.clear();
 	}
 }

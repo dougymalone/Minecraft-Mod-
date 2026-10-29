@@ -43,7 +43,8 @@ public class BreakerBlockEntity extends BlockEntity {
 	}
 
 	public void openChannelSelector(ServerPlayer player) {
-		ServerPlayNetworking.send(player, new OpenBreakerChannelPayload(worldPosition, channel));
+		String known = level == null ? "" : String.join("\n", MachineIndex.knownChannels(level));
+		ServerPlayNetworking.send(player, new OpenBreakerChannelPayload(worldPosition, channel, known));
 	}
 
 	public boolean tryHarvest() {
