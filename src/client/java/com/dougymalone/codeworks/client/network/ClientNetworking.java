@@ -17,10 +17,11 @@ public final class ClientNetworking {
 				Minecraft minecraft = context.client();
 				minecraft.setScreenAndShow(new CentralCommandScreen(
 					payload.pos(),
-					payload.script(),
 					payload.status(),
 					payload.channelsCsv(),
-					payload.breakerCountsCsv()
+					payload.breakerCountsCsv(),
+					payload.scriptsPack(),
+					payload.selectedScript()
 				));
 			});
 		});

@@ -37,7 +37,7 @@ public final class ModNetworking {
 					if (payload.channelsCsv() != null && !payload.channelsCsv().isBlank()) {
 						channels.addAll(Arrays.asList(payload.channelsCsv().split("\n")));
 					}
-					command.applyFromPlayer(payload.script(), channels);
+					command.applyFromPlayer(payload.scriptsPack(), channels, payload.selectedScript());
 				}
 			});
 		});

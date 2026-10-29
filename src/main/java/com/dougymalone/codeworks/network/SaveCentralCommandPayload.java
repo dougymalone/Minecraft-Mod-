@@ -7,7 +7,12 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public record SaveCentralCommandPayload(BlockPos pos, String script, String channelsCsv) implements CustomPacketPayload {
+public record SaveCentralCommandPayload(
+	BlockPos pos,
+	String channelsCsv,
+	String scriptsPack,
+	String selectedScript
+) implements CustomPacketPayload {
 	public static final CustomPacketPayload.Type<SaveCentralCommandPayload> TYPE =
 		new CustomPacketPayload.Type<>(Codeworks.id("save_central_command"));
 
@@ -15,9 +20,11 @@ public record SaveCentralCommandPayload(BlockPos pos, String script, String chan
 		BlockPos.STREAM_CODEC,
 		SaveCentralCommandPayload::pos,
 		ByteBufCodecs.STRING_UTF8,
-		SaveCentralCommandPayload::script,
-		ByteBufCodecs.STRING_UTF8,
 		SaveCentralCommandPayload::channelsCsv,
+		ByteBufCodecs.STRING_UTF8,
+		SaveCentralCommandPayload::scriptsPack,
+		ByteBufCodecs.STRING_UTF8,
+		SaveCentralCommandPayload::selectedScript,
 		SaveCentralCommandPayload::new
 	);
 

@@ -4,6 +4,7 @@ import com.dougymalone.codeworks.block.entity.CentralCommandBlockEntity;
 import com.dougymalone.codeworks.channel.ChannelIds;
 import com.dougymalone.codeworks.network.SaveCentralCommandPayload;
 import com.dougymalone.codeworks.script.ScriptHelp;
+import com.dougymalone.codeworks.script.ScriptSections;
 import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -17,8 +18,8 @@ import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 
 /**
- * Central Command UI. Panel chrome is drawn BEFORE widgets so channel rows are not covered.
- * All text colors are opaque ARGB — MC 26.3 skips drawing when alpha == 0.
+ * Central Command UI. Panel chrome is drawn BEFORE widgets so rows are not covered.
+ * Opaque ARGB text for MC 26.3. Supports multiple named script sections.
  */
 public class CentralCommandScreen extends Screen {
 	private static final int TEXT = 0xFFFFFFFF;
@@ -44,22 +45,31 @@ public class CentralCommandScreen extends Screen {
 	private final BlockPos pos;
 	private final List<String> channels = new ArrayList<>();
 	private final List<Integer> breakerCounts = new ArrayList<>();
-	private String script;
+	private final List<ScriptSections.Section> scripts = new ArrayList<>();
+	private String selectedScript = ScriptSections.MAIN;
 	private String scriptStatus;
 	private String uiFeedback = "";
 	private String selectedChannel = "";
 	private Tab tab = Tab.CHANNELS;
 	private int listScroll;
+	private int scriptChipScroll;
 	private int helpScroll;
 
 	private EditBox channelInput;
+	private EditBox scriptNameInput;
 	private MultiLineEditBox scriptEditor;
 	private List<HelpLine> helpLines = List.of();
 
-	public CentralCommandScreen(BlockPos pos, String script, String status, String channelsCsv, String countsCsv) {
+	public CentralCommandScreen(
+		BlockPos pos,
+		String status,
+		String channelsCsv,
+		String countsCsv,
+		String scriptsPack,
+		String selectedScript
+	) {
 		super(Component.translatable("gui.codeworks.central_command_title"));
 		this.pos = pos;
-		this.script = script == null ? "" : script;
 		this.scriptStatus = status == null ? "" : status;
 		if (channelsCsv != null && !channelsCsv.isBlank()) {
 			for (String part : channelsCsv.split("\n")) {
@@ -86,8 +96,15 @@ public class CentralCommandScreen extends Screen {
 		while (this.breakerCounts.size() < this.channels.size()) {
 			this.breakerCounts.add(0);
 		}
+		this.scripts.addAll(ScriptSections.unpack(scriptsPack));
+		String sel = ScriptSections.sanitizeName(selectedScript);
+		if (ScriptSections.containsName(this.scripts, sel)) {
+			this.selectedScript = sel;
+		} else {
+			this.selectedScript = this.scripts.getFirst().name;
+		}
 		if (!this.channels.isEmpty()) {
-			this.selectedChannel = this.channels.get(0);
+			this.selectedChannel = this.channels.getFirst();
 			this.uiFeedback = Component.translatable("gui.codeworks.channels_loaded", this.channels.size()).getString();
 		} else {
 			this.uiFeedback = Component.translatable("gui.codeworks.channels_empty_hint").getString();
@@ -99,7 +116,7 @@ public class CentralCommandScreen extends Screen {
 	}
 
 	private int contentWidth() {
-		return Math.min(360, Math.max(240, this.width - 40));
+		return Math.min(380, Math.max(260, this.width - 40));
 	}
 
 	private int contentTop() {
@@ -110,10 +127,16 @@ public class CentralCommandScreen extends Screen {
 		return this.height - 48;
 	}
 
+	private ScriptSections.Section selectedSection() {
+		ScriptSections.Section found = ScriptSections.find(this.scripts, this.selectedScript);
+		return found != null ? found : this.scripts.getFirst();
+	}
+
 	@Override
 	protected void init() {
 		this.clearWidgets();
 		this.channelInput = null;
+		this.scriptNameInput = null;
 		this.scriptEditor = null;
 
 		int tabW = Math.min(72, Math.max(52, (this.width - 36) / 5));
@@ -169,7 +192,6 @@ public class CentralCommandScreen extends Screen {
 	private void initChannelsTab(int top, int bottom) {
 		int x = contentLeft();
 		int width = contentWidth();
-		// Reserve header lines (blurb + selected) drawn in extractRenderState
 		int inputY = top + 28;
 		this.channelInput = new EditBox(this.font, x, inputY, width - 84, 20, Component.translatable("gui.codeworks.channel"));
 		this.channelInput.setMaxLength(ChannelIds.MAX_LENGTH);
@@ -262,16 +284,89 @@ public class CentralCommandScreen extends Screen {
 	}
 
 	private void initScriptTab(int top, int bottom) {
-		int width = contentWidth();
-		int height = Math.max(80, bottom - top - 4);
 		int x = contentLeft();
+		int width = contentWidth();
+		int chipY = top;
+		int chipH = 20;
+		int chipGap = 2;
+		int maxChipW = 72;
+		int addW = 28;
+		int available = width - addW - 4;
+		int chipsFit = Math.max(1, (available + chipGap) / (maxChipW + chipGap));
+		int maxScroll = Math.max(0, this.scripts.size() - chipsFit);
+		if (this.scriptChipScroll > maxScroll) {
+			this.scriptChipScroll = maxScroll;
+		}
+
+		int cx = x;
+		for (int i = this.scriptChipScroll; i < this.scripts.size(); i++) {
+			if (cx + maxChipW > x + available) {
+				break;
+			}
+			final int index = i;
+			ScriptSections.Section section = this.scripts.get(i);
+			boolean selected = section.name.equals(this.selectedScript);
+			String mark = section.enabled ? "" : "·";
+			String label = (selected ? ">" : "") + mark + section.name;
+			if (label.length() > 10) {
+				label = label.substring(0, 10);
+			}
+			int chipW = Math.min(maxChipW, Math.max(48, this.font.width(label) + 12));
+			this.addRenderableWidget(
+				Button.builder(Component.literal(label), b -> this.selectScript(index))
+					.bounds(cx, chipY, chipW, chipH)
+					.build()
+			);
+			cx += chipW + chipGap;
+		}
+		this.addRenderableWidget(
+			Button.builder(Component.literal("+"), b -> this.addScript())
+				.bounds(x + width - addW, chipY, addW, chipH)
+				.build()
+		);
+
+		int toolsY = chipY + chipH + 4;
+		ScriptSections.Section current = selectedSection();
+		this.scriptNameInput = new EditBox(
+			this.font,
+			x,
+			toolsY,
+			Math.max(80, width - 168),
+			20,
+			Component.translatable("gui.codeworks.script_name")
+		);
+		this.scriptNameInput.setMaxLength(ScriptSections.MAX_NAME_LENGTH);
+		this.scriptNameInput.setValue(current.name);
+		this.scriptNameInput.setHint(Component.translatable("gui.codeworks.script_name_hint"));
+		this.addRenderableWidget(this.scriptNameInput);
+
+		int bx = x + width - 164;
+		this.addRenderableWidget(
+			Button.builder(Component.translatable("gui.codeworks.script_rename"), b -> this.renameScript())
+				.bounds(bx, toolsY, 52, 20)
+				.build()
+		);
+		this.addRenderableWidget(
+			Button.builder(
+				Component.translatable(current.enabled ? "gui.codeworks.script_on" : "gui.codeworks.script_off"),
+				b -> this.toggleScriptEnabled()
+			).bounds(bx + 54, toolsY, 36, 20).build()
+		);
+		Button delete = Button.builder(Component.translatable("gui.codeworks.script_delete"), b -> this.deleteScript())
+			.bounds(bx + 92, toolsY, 72, 20)
+			.build();
+		delete.active = this.scripts.size() > 1;
+		this.addRenderableWidget(delete);
+
+		int editorTop = toolsY + 24;
+		int height = Math.max(60, bottom - editorTop - 16);
 		this.scriptEditor = MultiLineEditBox.builder()
 			.setX(x)
-			.setY(top)
+			.setY(editorTop)
 			.setPlaceholder(Component.translatable("gui.codeworks.script_placeholder"))
 			.build(this.font, width, height, Component.translatable("gui.codeworks.tab_script"));
 		this.scriptEditor.setCharacterLimit(CentralCommandBlockEntity.MAX_SCRIPT_LENGTH);
-		this.scriptEditor.setValue(this.script);
+		this.scriptEditor.setValue(current.source);
 		this.addRenderableWidget(this.scriptEditor);
 	}
 
@@ -314,9 +409,8 @@ public class CentralCommandScreen extends Screen {
 		this.selectedChannel = id;
 		this.channelInput.setValue("");
 		this.uiFeedback = Component.translatable("gui.codeworks.channel_added", id, this.channels.size()).getString();
-		// Keep new row visible
 		this.listScroll = Math.max(0, this.channels.size() - 1);
-		this.persistChannels();
+		this.persistAll();
 		this.rebuildWidgets();
 	}
 
@@ -341,38 +435,119 @@ public class CentralCommandScreen extends Screen {
 			this.selectedChannel = this.channels.isEmpty() ? "" : this.channels.get(Math.min(index, this.channels.size() - 1));
 		}
 		this.uiFeedback = Component.translatable("gui.codeworks.channel_removed", removed, this.channels.size()).getString();
-		this.persistChannels();
+		this.persistAll();
+		this.rebuildWidgets();
+	}
+
+	private void selectScript(int index) {
+		if (index < 0 || index >= this.scripts.size()) {
+			return;
+		}
+		captureScriptIfNeeded();
+		this.selectedScript = this.scripts.get(index).name;
+		this.uiFeedback = Component.translatable("gui.codeworks.script_selected", this.selectedScript).getString();
+		this.rebuildWidgets();
+	}
+
+	private void addScript() {
+		if (this.scripts.size() >= ScriptSections.MAX_SCRIPTS) {
+			this.uiFeedback = Component.translatable("gui.codeworks.script_limit").getString();
+			return;
+		}
+		captureScriptIfNeeded();
+		String name = ScriptSections.uniqueName(this.scripts, "script");
+		this.scripts.add(new ScriptSections.Section(name, "// " + name + "\nWait(20);\n", true));
+		this.selectedScript = name;
+		this.scriptChipScroll = Math.max(0, this.scripts.size() - 1);
+		this.uiFeedback = Component.translatable("gui.codeworks.script_added", name).getString();
+		this.persistAll();
+		this.rebuildWidgets();
+	}
+
+	private void renameScript() {
+		if (this.scriptNameInput == null) {
+			return;
+		}
+		captureScriptIfNeeded();
+		String next = ScriptSections.sanitizeName(this.scriptNameInput.getValue());
+		if (next.isEmpty()) {
+			this.uiFeedback = Component.translatable("gui.codeworks.script_name_invalid").getString();
+			return;
+		}
+		ScriptSections.Section current = selectedSection();
+		if (next.equals(current.name)) {
+			return;
+		}
+		if (ScriptSections.containsName(this.scripts, next)) {
+			this.uiFeedback = Component.translatable("gui.codeworks.script_name_taken", next).getString();
+			return;
+		}
+		String old = current.name;
+		current.name = next;
+		this.selectedScript = next;
+		this.uiFeedback = Component.translatable("gui.codeworks.script_renamed", old, next).getString();
+		this.persistAll();
+		this.rebuildWidgets();
+	}
+
+	private void toggleScriptEnabled() {
+		captureScriptIfNeeded();
+		ScriptSections.Section current = selectedSection();
+		current.enabled = !current.enabled;
+		this.uiFeedback = Component.translatable(
+			current.enabled ? "gui.codeworks.script_enabled" : "gui.codeworks.script_disabled",
+			current.name
+		).getString();
+		this.persistAll();
+		this.rebuildWidgets();
+	}
+
+	private void deleteScript() {
+		if (this.scripts.size() <= 1) {
+			this.uiFeedback = Component.translatable("gui.codeworks.script_keep_one").getString();
+			return;
+		}
+		captureScriptIfNeeded();
+		ScriptSections.Section current = selectedSection();
+		this.scripts.remove(current);
+		this.selectedScript = this.scripts.getFirst().name;
+		this.uiFeedback = Component.translatable("gui.codeworks.script_deleted", current.name).getString();
+		this.persistAll();
 		this.rebuildWidgets();
 	}
 
 	private void captureScriptIfNeeded() {
 		if (this.scriptEditor != null) {
-			this.script = this.scriptEditor.getValue();
+			ScriptSections.Section current = selectedSection();
+			current.source = this.scriptEditor.getValue();
 		}
 	}
 
-	private void persistChannels() {
+	private void persistAll() {
 		captureScriptIfNeeded();
 		ClientPlayNetworking.send(new SaveCentralCommandPayload(
 			this.pos,
-			this.script,
-			String.join("\n", this.channels)
+			String.join("\n", this.channels),
+			ScriptSections.pack(this.scripts),
+			this.selectedScript
 		));
 	}
 
 	private void saveOnly() {
-		persistChannels();
-		this.uiFeedback = Component.translatable("gui.codeworks.saved_ok", this.channels.size()).getString();
+		persistAll();
+		this.uiFeedback = Component.translatable(
+			"gui.codeworks.saved_ok_scripts",
+			this.channels.size(),
+			this.scripts.size()
+		).getString();
 	}
 
 	private void saveAndClose() {
-		persistChannels();
+		persistAll();
 		this.onClose();
 	}
 
 	private List<HelpLine> buildHelpLines() {
-		// Colors passed at draw time (opaque ARGB). Do NOT put colors in Style —
-		// MC 26.3 FormattedCharSequence style RGB has alpha 0 and is skipped.
 		List<HelpLine> out = new ArrayList<>();
 		out.add(new HelpLine("Central Command model", ACCENT));
 		out.add(new HelpLine("", TEXT));
@@ -415,13 +590,20 @@ public class CentralCommandScreen extends Screen {
 			this.rebuildWidgets();
 			return true;
 		}
+		if (this.tab == Tab.SCRIPT) {
+			if (scrollY > 0) {
+				this.scriptChipScroll = Math.max(0, this.scriptChipScroll - 1);
+			} else if (scrollY < 0) {
+				this.scriptChipScroll++;
+			}
+			this.rebuildWidgets();
+			return true;
+		}
 		return super.mouseScrolled(x, y, scrollX, scrollY);
 	}
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
-		// CRITICAL: draw panel chrome BEFORE widgets. Drawing fill after super covers
-		// channel rows and makes the list look empty (Add/Save still barely readable).
 		int panelW = contentWidth() + 16;
 		int panelX = (this.width - panelW) / 2;
 		int panelY = contentTop() - 6;
@@ -429,7 +611,6 @@ public class CentralCommandScreen extends Screen {
 		graphics.fill(panelX - 2, panelY - 2, panelX + panelW + 2, panelBottom + 2, PANEL_EDGE);
 		graphics.fill(panelX, panelY, panelX + panelW, panelBottom, PANEL);
 
-		// Selected-row highlight behind CHANNELS list buttons
 		if (this.tab == Tab.CHANNELS && !this.channels.isEmpty()) {
 			drawChannelRowBackgrounds(graphics, panelBottom);
 		}
@@ -449,7 +630,7 @@ public class CentralCommandScreen extends Screen {
 			case CHANNELS -> drawChannelsOverlay(graphics, textX, y, panelBottom);
 			case BREAKER -> drawBreakerOverlay(graphics, textX, y);
 			case PLACER -> drawPlacerOverlay(graphics, textX, y);
-			case SCRIPT -> { /* editor widgets */ }
+			case SCRIPT -> drawScriptOverlay(graphics, textX, y);
 			case HELP -> drawHelpOverlay(graphics, textX, y, panelBottom);
 		}
 	}
@@ -506,18 +687,6 @@ public class CentralCommandScreen extends Screen {
 				0xFF8899AA
 			);
 		} else {
-			// Mirror labels above buttons so a covered/missed widget still shows the list
-			int inputY = contentTop() + 28;
-			int listTop = inputY + 26;
-			int rowH = 22;
-			int drawY = listTop;
-			for (int i = this.listScroll; i < this.channels.size(); i++) {
-				if (drawY + rowH > panelBottom - 4) {
-					break;
-				}
-				// Buttons carry the interactive label; keep a small count badge on the right via feedback only
-				drawY += rowH;
-			}
 			graphics.text(
 				this.font,
 				Component.translatable("gui.codeworks.channels_count", this.channels.size()),
@@ -548,6 +717,19 @@ public class CentralCommandScreen extends Screen {
 		graphics.text(this.font, Component.translatable("gui.codeworks.placer_tab_title"), textX, y, ACCENT);
 		graphics.text(this.font, Component.translatable("gui.codeworks.placer_tab_stub"), textX, y + 16, MUTED);
 		graphics.text(this.font, Component.translatable("gui.codeworks.placer_tab_reserve"), textX, y + 32, 0xFF8899AA);
+	}
+
+	private void drawScriptOverlay(GuiGraphicsExtractor graphics, int textX, int y) {
+		// chips/tools/editor are widgets; small caption under title area if needed
+		ScriptSections.Section current = selectedSection();
+		String state = current.enabled ? "on" : "off";
+		graphics.text(
+			this.font,
+			Component.translatable("gui.codeworks.script_blurb", this.scripts.size(), state),
+			textX,
+			contentBottom() - 12,
+			MUTED
+		);
 	}
 
 	private void drawHelpOverlay(GuiGraphicsExtractor graphics, int textX, int y, int panelBottom) {
